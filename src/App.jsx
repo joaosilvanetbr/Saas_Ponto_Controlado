@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth.jsx'
+import { useNotificacoes } from './hooks/useNotificacoes'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
 import HistoricoPage from './pages/HistoricoPage'
@@ -10,6 +12,13 @@ import ProtectedRoute from './components/Layout/ProtectedRoute'
 import BottomNav from './components/Layout/BottomNav'
 
 export default function App() {
+  const { verificarLembrete } = useNotificacoes()
+
+  useEffect(() => {
+    const interval = setInterval(verificarLembrete, 60 * 1000)
+    return () => clearInterval(interval)
+  }, [verificarLembrete])
+
   return (
     <BrowserRouter>
       <AuthProvider>

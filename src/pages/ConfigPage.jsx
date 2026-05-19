@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getConfig, saveConfig } from '../utils/calcHoras'
+import { useNotificacoes } from '../hooks/useNotificacoes'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
 import Input from '../components/UI/Input'
@@ -18,11 +19,14 @@ const JORNADAS_PRESET = [
 
 export default function ConfigPage() {
   const { user, logout } = useAuth()
+  const { pedirPermissao } = useNotificacoes()
   const [jornadaMinutos, setJornadaMinutos] = useState(480)
   const [nome, setNome] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [erroJornada, setErroJornada] = useState('')
+  const [permissao, setPermissao] = useState(Notification?.permission || 'default')
+  const [lembretes, setLembretes] = useState(() => getConfig().lembretes || { ativo: false, entrada: '08:00', saida: '17:48' })
 
   useEffect(() => {
     const config = getConfig()
@@ -52,7 +56,7 @@ export default function ConfigPage() {
     }
 
     setLoading(true)
-    saveConfig({ jornadaMinutos, nome })
+    saveConfig({ jornadaMinutos, nome, lembretes })
     setLoading(false)
     setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)
@@ -172,6 +176,71 @@ export default function ConfigPage() {
           </p>
         )}
       </Card>
+
+      <div>
+        <p style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-faint)', letterSpacing: '1px', marginBottom: 'var(--space-3)', marginTop: 0 }}>LEMBRETES</p>
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>Lembretes de ponto</p>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0, marginTop: 2 }}>Notificações de entrada e saída</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!lembretes.ativo) {
+                  const p = await pedirPermissao()
+                  setPermissao(p)
+                  if (p !== 'granted') return
+                }
+                setLembretes(prev => ({ ...prev, ativo: !prev.ativo }))
+              }}
+              style={{
+                width: 44, height: 26,
+                borderRadius: 'var(--radius-pill)',
+                background: lembretes.ativo ? 'var(--color-accent)' : 'var(--color-divider)',
+                border: 'none',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background 0.2s',
+              }}
+              aria-label="Toggle lembretes"
+            >
+              <span style={{
+                position: 'absolute', top: 3, width: 20, height: 20,
+                left: lembretes.ativo ? 21 : 3,
+                background: 'white', borderRadius: '50%',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </button>
+          </div>
+
+          {lembretes.ativo && (
+            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+              <Input
+                label="Horário de entrada"
+                type="time"
+                value={lembretes.entrada}
+                onChange={e => setLembretes(prev => ({ ...prev, entrada: e.target.value }))}
+                style={{ flex: 1 }}
+              />
+              <Input
+                label="Horário de saída"
+                type="time"
+                value={lembretes.saida}
+                onChange={e => setLembretes(prev => ({ ...prev, saida: e.target.value }))}
+                style={{ flex: 1 }}
+              />
+            </div>
+          )}
+
+          {permissao === 'denied' && (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', marginTop: 'var(--space-2)', margin: 0 }}>
+              Permissão negada. Ative nas configurações do seu navegador.
+            </p>
+          )}
+        </Card>
+      </div>
 
       <Card style={{ marginBottom: 'var(--space-3)' }}>
         <p style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-faint)', letterSpacing: '1px', marginBottom: 'var(--space-3)', marginTop: 0 }}>APP</p>
