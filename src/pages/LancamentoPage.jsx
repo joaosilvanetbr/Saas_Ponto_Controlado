@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { usePontos } from '../hooks/usePontos'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useMesesFechados } from '../hooks/useMesesFechados'
 import { calcularHorasTrabalhadas, minutosParaHHMM } from '../utils/calcHoras'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
@@ -21,6 +22,7 @@ export default function LancamentoPage() {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const { salvarPonto, getPontoDoDia } = usePontos()
+  const { isMesFechado } = useMesesFechados()
   const [data, setData] = useState(searchParams.get('data') || '')
   const [tipo, setTipo] = useState(searchParams.get('tipo') || 'falta')
   const [horas, setHoras] = useState('')
@@ -37,6 +39,9 @@ export default function LancamentoPage() {
 
   const precisaHoras = tipo === 'extra_pago' || tipo === 'extra_banco'
   const isCorrecao = tipo === 'correcao'
+
+  const mesDaData = data ? data.slice(0, 7) : null
+  const mesBloqueado = mesDaData ? isMesFechado(mesDaData) : false
 
   useEffect(() => {
     if (data && isCorrecao) {
@@ -65,6 +70,12 @@ export default function LancamentoPage() {
   function handleSubmit(e) {
     e.preventDefault()
     if (!data) return
+
+    if (mesBloqueado) {
+      setMsg('Mês fechado. Reabra em Histórico para editar.')
+      setTimeout(() => setMsg(''), 3000)
+      return
+    }
 
     setError('')
     setLoading(true)
@@ -122,15 +133,15 @@ export default function LancamentoPage() {
           left: '16px',
           right: '16px',
           zIndex: 1000,
-          background: 'var(--color-success)',
-          color: 'white',
+          background: mesBloqueado ? 'var(--color-warning)' : 'var(--color-success)',
+          color: mesBloqueado ? 'var(--color-text)' : 'white',
           padding: 'var(--space-3) var(--space-4)',
           borderRadius: 'var(--radius-md)',
           textAlign: 'center',
           fontSize: 'var(--text-sm)',
           fontWeight: 600,
         }}>
-          ✅ Lançamento salvo com sucesso!
+          {msg}
         </div>
       )}
 
@@ -160,7 +171,14 @@ export default function LancamentoPage() {
 
       <Card style={{ marginBottom: 'var(--space-4)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <Input label="Data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          <div>
+            <Input label="Data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            {mesBloqueado && (
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', marginTop: 'var(--space-1)', marginBottom: 0 }}>
+                🔒 Este mês está fechado. Reabra em Histórico para editar.
+              </p>
+            )}
+          </div>
 
           {isCorrecao && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
@@ -179,7 +197,7 @@ export default function LancamentoPage() {
         </div>
       </Card>
 
-      <Button variant="filled" size="lg" fullWidth onClick={handleSubmit} disabled={loading || !data}>
+      <Button variant="filled" size="lg" fullWidth onClick={handleSubmit} disabled={mesBloqueado || loading || !data}>
         {loading ? 'Salvando...' : 'Salvar Lançamento'}
       </Button>
 
