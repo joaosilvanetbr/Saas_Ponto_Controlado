@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useBancoHoras } from '../hooks/useBancoHoras'
 import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
+import { diaMaisProdutivo, mediaSaldoUltimos30, sequenciaSemFalta } from '../utils/calcInsights'
 import AppLayout from '../components/Layout/AppLayout'
 import BaterPontoButton from '../components/Ponto/BaterPontoButton'
 import Card from '../components/UI/Card'
@@ -11,6 +12,7 @@ import SaldoBadge from '../components/UI/SaldoBadge'
 import EmptyState from '../components/UI/EmptyState'
 import SkeletonCard from '../components/UI/SkeletonCard'
 import DayCard from '../components/Historico/DayCard'
+import InsightCard from '../components/UI/InsightCard'
 
 function dataHoje() {
   const d = new Date()
@@ -96,6 +98,10 @@ export default function HomePage() {
     .sort((a, b) => b.data.localeCompare(a.data))
     .slice(0, 5)
 
+  const diaProd = diaMaisProdutivo(pontos, config.jornadaMinutos)
+  const mediaSaldo = mediaSaldoUltimos30(pontos, config.jornadaMinutos)
+  const sequencia = sequenciaSemFalta(pontos)
+
   return (
     <AppLayout title="Hoje">
       {msg && (
@@ -171,6 +177,45 @@ export default function HomePage() {
             />
           ))}
         </div>
+      )}
+
+      {(diaProd || mediaSaldo !== null || sequencia > 0) && (
+        <>
+          <h2 style={{
+            fontSize: 'var(--text-lg)',
+            fontWeight: 600,
+            color: 'var(--color-text)',
+            marginTop: 'var(--space-6)',
+            marginBottom: 'var(--space-3)'
+          }}>
+            Seus padrões
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {diaProd && (
+              <InsightCard
+                icon="📅"
+                label="Dia mais produtivo"
+                value={diaProd}
+              />
+            )}
+            {mediaSaldo !== null && (
+              <InsightCard
+                icon={mediaSaldo >= 0 ? '📈' : '📉'}
+                label="Média de saldo (últimos 30 dias)"
+                value={minutosParaTexto(mediaSaldo)}
+                color={mediaSaldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}
+              />
+            )}
+            {sequencia > 1 && (
+              <InsightCard
+                icon="🔥"
+                label="Sequência sem faltas"
+                value={`${sequencia} dias`}
+                color="var(--color-accent)"
+              />
+            )}
+          </div>
+        </>
       )}
     </AppLayout>
   )
