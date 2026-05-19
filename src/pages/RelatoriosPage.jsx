@@ -12,6 +12,7 @@ import EmptyState from '../components/UI/EmptyState'
 import SkeletonCard from '../components/UI/SkeletonCard'
 import DayCard from '../components/Historico/DayCard'
 import SaldoBadge from '../components/UI/SaldoBadge'
+import SaldoChart from '../components/Charts/SaldoChart'
 import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto } from '../utils/calcHoras'
 
 const PRESETS = [
@@ -129,6 +130,13 @@ export default function RelatoriosPage() {
             <KPICard label="Extras (banco)" value={formatarMinutos(dados.resumo.extrasBanco)} />
             <KPICard label="Faltas" value={String(dados.resumo.totalFaltas)} />
             <KPICard label="Dias Trabalhados" value={String(dados.resumo.diasTrabalhados)} />
+          </div>
+
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <SaldoChart
+              registros={dados.registros}
+              jornadaMinutos={config.jornadaMinutos}
+            />
           </div>
 
           <Button variant="tonal" size="md" fullWidth onClick={handleExportar} style={{ marginBottom: 'var(--space-5)' }}>
