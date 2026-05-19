@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePontos } from '../hooks/usePontos'
+import { useMesesFechados } from '../hooks/useMesesFechados'
 import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
@@ -34,6 +35,7 @@ function formatarDataCompleta(dataStr) {
 export default function HistoricoPage() {
   const navigate = useNavigate()
   const { pontos, deletarPonto } = usePontos()
+  const { isMesFechado, fecharMes, reabrirMes } = useMesesFechados()
   const config = getConfig()
   const [mesSelecionado, setMesSelecionado] = useState(() => {
     const now = new Date()
@@ -74,12 +76,17 @@ export default function HistoricoPage() {
   const mesAno = new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   const labelMes = mesAno.charAt(0).toUpperCase() + mesAno.slice(1)
 
+  const fechado = isMesFechado(mesSelecionado)
+
   function handleDeletar(data) {
     if (confirm('Excluir este registro?')) {
       deletarPonto(data)
       setDetalhe(null)
     }
   }
+
+  const mesDoDetalhe = detalhe ? detalhe.data.slice(0, 7) : null
+  const detalheEmMesFechado = mesDoDetalhe ? isMesFechado(mesDoDetalhe) : false
 
   return (
     <AppLayout title="Histórico">
@@ -92,6 +99,41 @@ export default function HistoricoPage() {
         <div style={{ marginTop: 'var(--space-2)', textAlign: 'center' }}>
           <SaldoBadge minutos={saldoFinal} formatter={minutosParaTexto} />
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginLeft: 'var(--space-2)' }}>saldo do mês</span>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
+          {fechado ? (
+            <button
+              onClick={() => { if (confirm('Reabrir este mês para edição?')) reabrirMes(mesSelecionado) }}
+              style={{
+                background: 'var(--color-warning-bg)',
+                color: 'var(--color-warning)',
+                border: 'none',
+                borderRadius: 'var(--radius-pill)',
+                padding: 'var(--space-2) var(--space-4)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              🔒 Mês fechado · Reabrir
+            </button>
+          ) : (
+            <button
+              onClick={() => { if (confirm('Fechar este mês? Registros não poderão ser editados.')) fecharMes(mesSelecionado) }}
+              style={{
+                background: 'var(--color-accent-tonal)',
+                color: 'var(--color-accent)',
+                border: 'none',
+                borderRadius: 'var(--radius-pill)',
+                padding: 'var(--space-2) var(--space-4)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Fechar mês
+            </button>
+          )}
         </div>
       </Card>
 
@@ -237,16 +279,46 @@ export default function HistoricoPage() {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-6)' }}>
+            {detalheEmMesFechado && (
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning)', textAlign: 'center', marginBottom: 'var(--space-2)', marginTop: 'var(--space-6)' }}>
+                🔒 Mês fechado — reabra para editar
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: detalheEmMesFechado ? 'var(--space-2)' : 'var(--space-6)' }}>
               <button
                 onClick={() => { setDetalhe(null); navigate(`/lancamento?data=${detalhe.data}&tipo=correcao`) }}
-                style={{ flex: 1, background: 'var(--color-accent-tonal)', color: 'var(--color-accent)', border: 'none', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer' }}
+                disabled={detalheEmMesFechado}
+                style={{
+                  flex: 1,
+                  background: 'var(--color-accent-tonal)',
+                  color: 'var(--color-accent)',
+                  border: 'none',
+                  padding: 'var(--space-3)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
+                  opacity: detalheEmMesFechado ? 0.4 : 1,
+                  cursor: detalheEmMesFechado ? 'not-allowed' : 'pointer',
+                }}
               >
                 Editar
               </button>
               <button
                 onClick={() => handleDeletar(detalhe.data)}
-                style={{ flex: 1, background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: 'none', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer' }}
+                disabled={detalheEmMesFechado}
+                style={{
+                  flex: 1,
+                  background: 'var(--color-danger-bg)',
+                  color: 'var(--color-danger)',
+                  border: 'none',
+                  padding: 'var(--space-3)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
+                  opacity: detalheEmMesFechado ? 0.4 : 1,
+                  cursor: detalheEmMesFechado ? 'not-allowed' : 'pointer',
+                }}
               >
                 Excluir
               </button>
