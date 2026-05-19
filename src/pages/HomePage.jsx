@@ -1,0 +1,177 @@
+import { useState, useEffect } from 'react'
+import { useAuth } from '../hooks/useAuth.jsx'
+import { usePontos } from '../hooks/usePontos'
+import { useBancoHoras } from '../hooks/useBancoHoras'
+import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
+import AppLayout from '../components/Layout/AppLayout'
+import BaterPontoButton from '../components/Ponto/BaterPontoButton'
+import Card from '../components/UI/Card'
+import KPICard from '../components/UI/KPICard'
+import SaldoBadge from '../components/UI/SaldoBadge'
+import EmptyState from '../components/UI/EmptyState'
+import SkeletonCard from '../components/UI/SkeletonCard'
+import DayCard from '../components/Historico/DayCard'
+
+function dataHoje() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function horaAgora() {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function dataExtenso() {
+  return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+export default function HomePage() {
+  const { user } = useAuth()
+  const { pontos, getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
+  const hoje = dataHoje()
+  const pontoHoje = getPontoDoDia(hoje)
+  const config = getConfig()
+
+  const agora = new Date()
+  const pontosDoMes = getPontosDoMes(agora.getFullYear(), agora.getMonth())
+  const { saldoMes } = useBancoHoras(pontosDoMes)
+
+  const [msg, setMsg] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [avisoSaida, setAvisoSaida] = useState(false)
+
+  function proximoCampo(ponto) {
+    if (!ponto) return 'entrada1'
+    if (!ponto.entrada1) return 'entrada1'
+    if (!ponto.saida1) return 'saida1'
+    if (!ponto.entrada2) return 'entrada2'
+    if (!ponto.saida2) return 'saida2'
+    return null
+  }
+
+  function getTipoBotao(ponto) {
+    const campo = proximoCampo(ponto)
+    if (!campo) return 'entrada'
+    if (campo === 'entrada1' || campo === 'entrada2') return 'entrada'
+    return 'saida'
+  }
+
+  function baterPonto() {
+    const campo = proximoCampo(pontoHoje)
+    if (!campo) {
+      setMsg('Jornada de hoje completa (4 registros)')
+      setTimeout(() => setMsg(''), 3000)
+      return
+    }
+
+    setLoading(true)
+    const dados = {
+      user_id: user.id,
+      data: hoje,
+      tipo: 'registro',
+      [campo]: horaAgora()
+    }
+
+    salvarPonto(dados)
+    setLoading(false)
+    setMsg(`${campo === 'entrada1' || campo === 'entrada2' ? 'Entrada' : 'Saída'} registrada às ${horaAgora()}`)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  useEffect(() => {
+    const campo = proximoCampo(pontoHoje)
+    if (campo && campo.startsWith('saida')) {
+      const timer = setTimeout(() => setAvisoSaida(true), 5000)
+      return () => clearTimeout(timer)
+    }
+    setAvisoSaida(false)
+  }, [pontoHoje])
+
+  const horasTrabalhadas = pontoHoje ? calcularHorasTrabalhadas(pontoHoje) : 0
+  const saldoDia = pontoHoje ? calcularSaldoDia(pontoHoje, config.jornadaMinutos) : -config.jornadaMinutos
+
+  const recentes = pontos
+    .filter((p) => p.data !== hoje)
+    .sort((a, b) => b.data.localeCompare(a.data))
+    .slice(0, 5)
+
+  return (
+    <AppLayout title="Hoje">
+      {msg && (
+        <div style={{
+          marginBottom: 'var(--space-4)',
+          background: 'var(--color-accent-tonal)',
+          color: 'var(--color-accent)',
+          fontSize: 'var(--text-sm)',
+          padding: 'var(--space-3)',
+          borderRadius: 'var(--radius-md)',
+          textAlign: 'center',
+        }}>
+          {msg}
+        </div>
+      )}
+
+      {avisoSaida && pontoHoje && (pontoHoje.entrada1 && !pontoHoje.saida1 || pontoHoje.entrada2 && !pontoHoje.saida2) && (
+        <div style={{
+          marginBottom: 'var(--space-4)',
+          background: 'var(--color-warning-bg)',
+          border: '1px solid var(--color-warning)',
+          color: 'var(--color-warning)',
+          fontSize: 'var(--text-sm)',
+          padding: 'var(--space-3)',
+          borderRadius: 'var(--radius-md)',
+        }}>
+          <span style={{ fontWeight: 600 }}>⚠️ Atenção</span>
+          <span style={{ display: 'block', marginTop: '2px', fontSize: 'var(--text-xs)' }}>
+            Você registrou entrada mas ainda não registrou a saída.
+          </span>
+        </div>
+      )}
+
+      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)', textTransform: 'capitalize' }}>
+        {dataExtenso()}
+      </p>
+
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <BaterPontoButton tipo={getTipoBotao(pontoHoje)} onPress={baterPonto} loading={loading} />
+      </div>
+
+      <Card style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+          <KPICard label="Entrada" value={pontoHoje?.entrada1 || '—'} />
+          <KPICard label="Saída" value={pontoHoje?.saida1 || '—'} />
+          <KPICard label="Horas Hoje" value={minutosParaHHMM(horasTrabalhadas)} />
+          <KPICard label="Saldo Hoje" value={minutosParaTexto(saldoDia)} positive={saldoDia >= 0} />
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--color-divider)', margin: 'var(--space-2) 0' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Saldo do Mês</span>
+          <SaldoBadge minutos={saldoMes} formatter={minutosParaTexto} />
+        </div>
+      </Card>
+
+      <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text)', marginBottom: 'var(--space-3)' }}>
+        Últimos registros
+      </h2>
+
+      {recentes.length === 0 ? (
+        <EmptyState icon="📋" title="Nenhum registro" message="Bata o ponto para começar" />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          {recentes.map((ponto) => (
+            <DayCard
+              key={ponto.data}
+              ponto={ponto}
+              saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos)}
+              horasFormatadas={minutosParaHHMM(calcularHorasTrabalhadas(ponto))}
+              formatter={minutosParaTexto}
+            />
+          ))}
+        </div>
+      )}
+    </AppLayout>
+  )
+}

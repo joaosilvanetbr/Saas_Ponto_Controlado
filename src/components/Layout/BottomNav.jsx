@@ -1,0 +1,128 @@
+import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+const ICONS = {
+  casa: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+      <path d="M9 21V12h6v9" />
+    </svg>
+  ),
+  calendario: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  ),
+  mais: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  ),
+  grafico: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="M7 16l4-4 4 4 4-6" />
+    </svg>
+  ),
+  engrenagem: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+    </svg>
+  ),
+}
+
+const TABS = [
+  { to: '/', label: 'Início', icon: 'casa' },
+  { to: '/historico', label: 'Histórico', icon: 'calendario' },
+  { to: '/lancamento', label: 'Lançar', icon: 'mais' },
+  { to: '/relatorios', label: 'Relatórios', icon: 'grafico' },
+  { to: '/config', label: 'Config', icon: 'engrenagem' },
+]
+
+export default function BottomNav() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [isDark, setIsDark] = useState(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = (e) => setIsDark(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  const activeIndex = TABS.findIndex((t) => t.to === location.pathname)
+
+  return (
+    <nav style={styles(isDark).nav}>
+      {TABS.map((tab, i) => {
+        const isActive = i === activeIndex
+        return (
+          <button
+            key={tab.to}
+            onClick={() => navigate(tab.to)}
+            style={styles(isDark).tab}
+          >
+            {isActive && <span style={styles(isDark).pill} />}
+            <span style={{ color: isActive ? 'var(--color-tab-active)' : 'var(--color-tab-inactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2px' }}>
+              {ICONS[tab.icon]}
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: isActive ? 600 : 500,
+              color: isActive ? 'var(--color-tab-active)' : 'var(--color-tab-inactive)',
+            }}>
+              {tab.label}
+            </span>
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
+function styles(isDark) {
+  return {
+    nav: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 200,
+      display: 'flex',
+      background: isDark ? 'rgba(28, 28, 30, 0.90)' : 'rgba(255, 255, 255, 0.85)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: '1px solid var(--color-divider)',
+      paddingBottom: 'var(--safe-bottom)',
+    },
+    tab: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: '8px',
+      paddingBottom: '4px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      WebkitTapHighlightColor: 'transparent',
+      position: 'relative',
+      transition: 'transform 150ms ease',
+    },
+    pill: {
+      position: 'absolute',
+      top: '2px',
+      width: '64px',
+      height: '32px',
+      borderRadius: 'var(--radius-pill)',
+      background: 'var(--color-accent-tonal)',
+    },
+  }
+}
