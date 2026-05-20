@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useRelatorios } from '../hooks/useRelatorios'
-import { getConfig } from '../utils/calcHoras'
+import { getConfig, calcularSaldoDiaMarcacoes, calcularJornadaPadraoMinutos, calcularSaldoDia, calcularHorasTrabalhadas, calcularMinutosPorMarcacoes, minutosParaHHMM, minutosParaTexto } from '../utils/calcHoras'
 import { formatarMinutos } from '../utils/reportCalculations'
 import { downloadCsv } from '../utils/exportCsv'
 import AppLayout from '../components/Layout/AppLayout'
@@ -12,9 +13,7 @@ import Input from '../components/UI/Input'
 import EmptyState from '../components/UI/EmptyState'
 import SkeletonCard from '../components/UI/SkeletonCard'
 import DayCard from '../components/Historico/DayCard'
-import SaldoBadge from '../components/UI/SaldoBadge'
 import SaldoChart from '../components/Charts/SaldoChart'
-import { calcularHorasTrabalhadas, calcularSaldoDia, calcularMinutosPorMarcacoes, minutosParaHHMM, minutosParaTexto } from '../utils/calcHoras'
 
 const PRESETS = [
   { label: 'Mês atual', key: 'mes_atual' },
@@ -41,6 +40,7 @@ function getMesAnterior() {
 }
 
 export default function RelatoriosPage() {
+  const { user } = useAuth()
   const { pontos } = usePontos()
   const { loading, error, dados, carregarRelatorio } = useRelatorios(pontos)
   const [config, setConfig] = useState({
@@ -55,29 +55,46 @@ export default function RelatoriosPage() {
   const [dataInicio, setDataInicio] = useState(getMesAtual().inicio)
   const [dataFim, setDataFim] = useState(getMesAtual().fim)
 
-  useEffect(() => {
-    if (preset === 'mes_atual') {
-      const { inicio, fim } = getMesAtual()
-      setDataInicio(inicio)
-      setDataFim(fim)
-    } else if (preset === 'mes_anterior') {
+  function handlePresetChange(key) {
+    setPreset(key)
+    if (key === 'mes_anterior') {
       const { inicio, fim } = getMesAnterior()
       setDataInicio(inicio)
       setDataFim(fim)
+    } else if (key === 'mes_atual') {
+      const { inicio, fim } = getMesAtual()
+      setDataInicio(inicio)
+      setDataFim(fim)
     }
-  }, [preset])
+  }
 
   // Efeito 1 — Carrega config do usuário
   useEffect(() => {
-    getConfig().then(cfg => {
+    if (!user?.id) return
+    getConfig(user.id).then(cfg => {
       if (cfg) setConfig(cfg)
     }).catch(err => console.error('Erro ao carregar config:', err))
-  }, [])
+  }, [user?.id])
+
+  function getJornadaFinal(cfg) {
+    const jornadaCalc = cfg.jornadaPadrao?.length
+      ? calcularJornadaPadraoMinutos(cfg.jornadaPadrao)
+      : 0
+    return jornadaCalc > 0 ? jornadaCalc : cfg.jornadaMinutos
+  }
+
+  function calcularSaldoPonto(ponto, cfg) {
+    const jornadaFinal = getJornadaFinal(cfg)
+    if (ponto.marcacoes && ponto.marcacoes.length > 0) {
+      return calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
+    }
+    return calcularSaldoDia(ponto, cfg.jornadaMinutos, cfg.intervaloMinutos || 0)
+  }
 
   // Efeito 2 — Carrega relatório quando datas ou config mudam
   useEffect(() => {
     carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
-  }, [dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos])
+  }, [dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos, pontos, carregarRelatorio])
 
   function handleAtualizar() {
     if (!dataInicio || !dataFim || dataInicio > dataFim) return
@@ -95,7 +112,7 @@ export default function RelatoriosPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <select
             value={preset}
-            onChange={(e) => setPreset(e.target.value)}
+            onChange={(e) => handlePresetChange(e.target.value)}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -171,7 +188,7 @@ export default function RelatoriosPage() {
               <DayCard
                 key={ponto.data}
                 ponto={ponto}
-                saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)}
+                saldoMinutos={calcularSaldoPonto(ponto, config)}
                 horasFormatadas={minutosParaHHMM(
                   ponto.marcacoes && ponto.marcacoes.length > 0
                     ? calcularMinutosPorMarcacoes(ponto.marcacoes)
