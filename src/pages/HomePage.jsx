@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useBancoHoras } from '../hooks/useBancoHoras'
+import { useTimer } from '../hooks/useTimer'
 import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
 import { diaMaisProdutivo, mediaSaldoUltimos30, sequenciaSemFalta } from '../utils/calcInsights'
 import AppLayout from '../components/Layout/AppLayout'
@@ -47,6 +48,10 @@ export default function HomePage() {
   const [avisoSaida, setAvisoSaida] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetHora, setSheetHora] = useState('')
+
+  const minutosTrabalhandoHoje = useTimer(
+    pontoHoje?.entrada1 && !pontoHoje?.saida1 ? pontoHoje.entrada1 : null
+  )
 
   function proximoCampo(ponto) {
     if (!ponto) return 'entrada1'
@@ -158,6 +163,77 @@ export default function HomePage() {
       <div style={{ marginBottom: 'var(--space-4)' }}>
         <BaterPontoButton tipo={getTipoBotao(pontoHoje)} onPress={abrirSheetPonto} loading={loading} />
       </div>
+
+      {/* SALDO DESTAQUE */}
+      {(() => {
+        const { jornadaMinutos } = getConfig()
+        let saldoMin = 0
+        if (pontoHoje?.entrada1 && pontoHoje?.saida1) {
+          const [eh, em] = pontoHoje.entrada1.split(':').map(Number)
+          const [sh, sm] = pontoHoje.saida1.split(':').map(Number)
+          saldoMin = (sh * 60 + sm) - (eh * 60 + em) - jornadaMinutos
+        }
+        if (pontoHoje?.entrada2 && pontoHoje?.saida2) {
+          const [eh2, em2] = pontoHoje.entrada2.split(':').map(Number)
+          const [sh2, sm2] = pontoHoje.saida2.split(':').map(Number)
+          saldoMin += (sh2 * 60 + sm2) - (eh2 * 60 + em2)
+        }
+        const positivo = saldoMin >= 0
+        const cor = positivo ? 'var(--color-success)' : 'var(--color-danger)'
+        const bgCor = positivo ? 'var(--color-success-bg)' : 'var(--color-danger-bg)'
+
+        return (
+          <div style={{
+            textAlign: 'center',
+            padding: 'var(--space-5) var(--space-4) var(--space-3)',
+          }}>
+            {pontoHoje?.entrada1 && !pontoHoje?.saida1 && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
+                background: 'var(--color-surface-tonal)',
+                borderRadius: 'var(--radius-pill)',
+                padding: 'var(--space-1) var(--space-3)',
+                marginBottom: 'var(--space-3)',
+              }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: 'var(--color-accent)',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                  display: 'inline-block',
+                }} />
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                  trabalhando há {minutosParaTexto(minutosTrabalhandoHoje)}
+                </span>
+              </div>
+            )}
+
+            {pontoHoje?.entrada1 && pontoHoje?.saida1 && (
+              <div style={{
+                background: bgCor,
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-4) var(--space-6)',
+                display: 'inline-block',
+                marginBottom: 'var(--space-3)',
+              }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: cor, fontWeight: 600,
+                  textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                  saldo hoje
+                </p>
+                <p style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: cor, margin: 0, lineHeight: 1.1 }}>
+                  {positivo ? '+' : ''}{minutosParaTexto(Math.abs(saldoMin))}
+                </p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.5; transform: scale(1.3); }
+        }
+      `}</style>
 
       <Card style={{ marginBottom: 'var(--space-4)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
