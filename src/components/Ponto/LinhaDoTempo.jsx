@@ -19,15 +19,51 @@ function mesclarTimeline(marcacoes, jornadaPadrao) {
   const timeline = []
   const maxLen = Math.max(marcacoes.length, jornadaPadrao.length)
 
+  // Calcular offset: diferença entre entrada real e entrada prevista (posição 0)
+  let offsetMinutos = 0
+  if (marcacoes.length > 0 && jornadaPadrao.length > 0) {
+    const horaRealPrimeira = marcacoes[0].hora
+    const horaPrevistaPrimeira = jornadaPadrao[0].hora
+    if (horaRealPrimeira && horaPrevistaPrimeira) {
+      offsetMinutos = diffMinutos(horaPrevistaPrimeira, horaRealPrimeira)
+    }
+  }
+
+  // Para marcações reais com pares completos, calcular offset dinâmico baseado
+  // na ÚLTIMA marcação real para projetar as próximas
+  let offsetDinamico = offsetMinutos
+  if (marcacoes.length >= 2) {
+    const ultimoRealIdx = marcacoes.length - 1
+    if (jornadaPadrao[ultimoRealIdx]) {
+      const horaReal = marcacoes[ultimoRealIdx].hora
+      const horaPrevista = jornadaPadrao[ultimoRealIdx].hora
+      if (horaReal && horaPrevista) {
+        offsetDinamico = diffMinutos(horaPrevista, horaReal)
+      }
+    }
+  }
+
   for (let i = 0; i < maxLen; i++) {
     if (i < marcacoes.length) {
       timeline.push({ ...marcacoes[i], real: true, index: i })
     } else if (i < jornadaPadrao.length) {
+      const horaPrevista = jornadaPadrao[i].hora
+      let horaAjustada = horaPrevista
+
+      if (horaPrevista && offsetDinamico !== 0) {
+        const [h, m] = horaPrevista.split(':').map(Number)
+        const totalMin = h * 60 + m + offsetDinamico
+        const hAjust = Math.floor(((totalMin % 1440) + 1440) % 1440 / 60)
+        const mAjust = ((totalMin % 1440) + 1440) % 1440 % 60
+        horaAjustada = `${String(hAjust).padStart(2, '0')}:${String(mAjust).padStart(2, '0')}`
+      }
+
       timeline.push({
         ...jornadaPadrao[i],
+        hora: horaAjustada,
         real: false,
         index: i,
-        labelPrevista: LABELS_PREVISTAS[i] || '',
+        labelPrevista: LABELS_PREVISTAS[i] || `Previsão`,
       })
     }
   }
@@ -38,6 +74,7 @@ function mesclarTimeline(marcacoes, jornadaPadrao) {
 export default function LinhaDoTempo({ marcacoes = [], onEditar, onRemover, jornadaPadrao = [] }) {
   const [editandoIdx, setEditandoIdx] = useState(null)
   const [editandoValor, setEditandoValor] = useState('')
+  const [hoveredIdx, setHoveredIdx] = useState(null)
 
   const timeline = mesclarTimeline(marcacoes, jornadaPadrao)
 
@@ -142,7 +179,13 @@ export default function LinhaDoTempo({ marcacoes = [], onEditar, onRemover, jorn
                       </button>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                      onTouchStart={() => setHoveredIdx(idx)}
+                      onTouchEnd={() => setTimeout(() => setHoveredIdx(null), 2000)}
+                      onMouseEnter={() => setHoveredIdx(idx)}
+                      onMouseLeave={() => setHoveredIdx(null)}
+                    >
                       <span
                         onClick={() => iniciarEdicao(idx)}
                         style={{
@@ -171,6 +214,9 @@ export default function LinhaDoTempo({ marcacoes = [], onEditar, onRemover, jorn
                           justifyContent: 'center',
                           borderRadius: 'var(--radius-sm)',
                           fontFamily: 'var(--font-native)',
+                          opacity: hoveredIdx === idx ? 1 : 0,
+                          pointerEvents: hoveredIdx === idx ? 'auto' : 'none',
+                          transition: 'opacity 0.15s',
                         }}
                       >
                         ×
