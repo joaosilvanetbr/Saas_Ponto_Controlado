@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { getConfig, saveConfig, getConfigSupabase, saveConfigSupabase } from '../utils/calcHoras'
+import { getConfig, saveConfig } from '../utils/calcHoras'
 import { useNotificacoes } from '../hooks/useNotificacoes'
 import { useInstallPWA } from '../hooks/useInstallPWA'
 import AppLayout from '../components/Layout/AppLayout'
@@ -47,20 +47,27 @@ export default function ConfigPage() {
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [permissao, setPermissao] = useState(Notification?.permission || 'default')
-  const [lembretes, setLembretes] = useState(() => getConfig(user?.id).lembretes || { ativo: false, entrada: '08:00', saida: '17:48' })
+  const [lembretes, setLembretes] = useState(() => {
+    try {
+      const raw = localStorage.getItem(`ponto_facil_lembretes_${user?.id}`)
+      if (raw) return JSON.parse(raw)
+    } catch {}
+    return { ativo: false, entrada: '08:00', saida: '17:48' }
+  })
 
   useEffect(() => {
     async function carregarConfig() {
-      const configSupa = await getConfigSupabase(user?.id)
-      const cfg = configSupa || getConfig(user?.id)
-      setNome(cfg.nome || user?.email?.split('@')[0] || '')
-      setEmpresaNome(cfg.empresaNome || '')
-      const intMin = cfg.intervaloMinutos ?? 60
-      setIntervaloMinutos(intMin)
-      setIntervaloSelecionado(INTERVALOS_PRESET.find(p => p.minutos === intMin)?.minutos ?? null)
-      setDiasTrabalho(cfg.diasTrabalho || [1, 2, 3, 4, 5])
-      setHoraEntradaPadrao(cfg.horaEntradaPadrao || '08:00')
-      setHoraSaidaPadrao(cfg.horaSaidaPadrao || '17:00')
+      const cfg = await getConfig(user?.id)
+      if (cfg) {
+        setNome(cfg.nome || user?.email?.split('@')[0] || '')
+        setEmpresaNome(cfg.empresaNome || '')
+        const intMin = cfg.intervaloMinutos ?? 60
+        setIntervaloMinutos(intMin)
+        setIntervaloSelecionado(INTERVALOS_PRESET.find(p => p.minutos === intMin)?.minutos ?? null)
+        setDiasTrabalho(cfg.diasTrabalho || [1, 2, 3, 4, 5])
+        setHoraEntradaPadrao(cfg.horaEntradaPadrao || '08:00')
+        setHoraSaidaPadrao(cfg.horaSaidaPadrao || '17:00')
+      }
     }
     if (user) carregarConfig()
   }, [user])
@@ -69,21 +76,10 @@ export default function ConfigPage() {
   const jornadaValida = jornMin >= 60 && jornMin <= 720
 
   useEffect(() => {
-    const config = getConfig(user?.id)
-    const novaConfig = {
-      ...config,
-      jornadaMinutos: jornMin,
-      nome,
-      empresaNome,
-      intervaloMinutos,
-      diasTrabalho,
-      horaEntradaPadrao,
-      horaSaidaPadrao,
-      lembretes,
+    if (user?.id) {
+      localStorage.setItem(`ponto_facil_lembretes_${user.id}`, JSON.stringify(lembretes))
     }
-    saveConfig(novaConfig, user?.id)
-    // saveConfigSupabase was removed from here - now only saves to Supabase when clicking Save
-  }, [horaEntradaPadrao, horaSaidaPadrao, intervaloMinutos])
+  }, [lembretes, user])
 
   function toggleDia(dia) {
     setDiasTrabalho(prev =>
@@ -135,8 +131,7 @@ export default function ConfigPage() {
       horaSaidaPadrao,
       lembretes,
     }
-    saveConfig(novaConfig, user?.id)
-    await saveConfigSupabase(novaConfig, user?.id)
+    await saveConfig(novaConfig, user?.id)
     setLoading(false)
     setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)
