@@ -1,16 +1,14 @@
 import { useMemo } from 'react'
-import { calcularSaldoDia, getConfig } from '../utils/calcHoras'
+import { calcularSaldoDia } from '../utils/calcHoras'
 
-export function useBancoHoras(pontosDoMes, userId = null) {
-  const config = getConfig(userId)
-
+export function useBancoHoras(pontosDoMes, config = { jornadaMinutos: 480, intervaloMinutos: 60 }) {
   const saldoMes = useMemo(() => {
     let total = 0
     for (const ponto of pontosDoMes) {
       total += calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos)
     }
     return total
-  }, [pontosDoMes, config.jornadaMinutos])
+  }, [pontosDoMes, config.jornadaMinutos, config.intervaloMinutos])
 
   const diasComRegistro = useMemo(() => {
     return pontosDoMes.length

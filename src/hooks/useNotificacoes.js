@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { getConfig } from '../utils/calcHoras'
 
 export function useNotificacoes(userId = null) {
 
@@ -20,16 +19,20 @@ export function useNotificacoes(userId = null) {
   }, [])
 
   const verificarLembrete = useCallback(() => {
-    const config = getConfig(userId)
-    if (!config.lembretes?.ativo) return
+    let lembretes = null
+    try {
+      const raw = localStorage.getItem(`ponto_facil_lembretes_${userId}`)
+      if (raw) lembretes = JSON.parse(raw)
+    } catch {}
+    if (!lembretes?.ativo) return
 
     const agora = new Date()
     const horaAtual = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`
 
-    if (config.lembretes.entrada && horaAtual === config.lembretes.entrada) {
+    if (lembretes.entrada && horaAtual === lembretes.entrada) {
       enviarNotificacao('⏱ Hora de registrar entrada!', 'Não esqueça de bater o ponto de entrada.')
     }
-    if (config.lembretes.saida && horaAtual === config.lembretes.saida) {
+    if (lembretes.saida && horaAtual === lembretes.saida) {
       enviarNotificacao('⏱ Hora de registrar saída!', 'Não esqueça de bater o ponto de saída.')
     }
   }, [enviarNotificacao, userId])

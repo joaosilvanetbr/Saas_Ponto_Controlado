@@ -42,7 +42,14 @@ function getMesAnterior() {
 
 export default function RelatoriosPage() {
   const { user } = useAuth()
-  const config = getConfig(user?.id)
+  const [config, setConfig] = useState({
+    jornadaMinutos: 480,
+    intervaloMinutos: 60,
+    empresaNome: '',
+    diasTrabalho: [1, 2, 3, 4, 5],
+    horaEntradaPadrao: '08:00',
+    horaSaidaPadrao: '17:00'
+  })
   const { loading, error, dados, carregarRelatorio } = useRelatorios()
   const [preset, setPreset] = useState('mes_atual')
   const [dataInicio, setDataInicio] = useState(getMesAtual().inicio)
@@ -61,8 +68,16 @@ export default function RelatoriosPage() {
   }, [preset])
 
   useEffect(() => {
-    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
-  }, [])
+    if (!user) return
+    getConfig(user.id).then(cfg => {
+      if (cfg) {
+        setConfig(cfg)
+        carregarRelatorio(dataInicio, dataFim, cfg.jornadaMinutos, cfg.intervaloMinutos)
+      } else {
+        carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
+      }
+    })
+  }, [user])
 
   function handleAtualizar() {
     if (!dataInicio || !dataFim || dataInicio > dataFim) return

@@ -37,11 +37,22 @@ export default function HomePage() {
   const { pontos, getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
   const hoje = dataHoje()
   const pontoHoje = getPontoDoDia(hoje)
-  const config = getConfig(user?.id)
+  const [config, setConfig] = useState({
+    jornadaMinutos: 480,
+    intervaloMinutos: 60,
+    empresaNome: '',
+    diasTrabalho: [1, 2, 3, 4, 5],
+    horaEntradaPadrao: '08:00',
+    horaSaidaPadrao: '17:00'
+  })
+  useEffect(() => {
+    if (!user) return
+    getConfig(user.id).then(cfg => { if (cfg) setConfig(cfg) })
+  }, [user])
 
   const agora = new Date()
   const pontosDoMes = getPontosDoMes(agora.getFullYear(), agora.getMonth())
-  const { saldoMes } = useBancoHoras(pontosDoMes, user?.id)
+  const { saldoMes } = useBancoHoras(pontosDoMes, config)
 
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)

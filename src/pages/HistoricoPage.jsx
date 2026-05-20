@@ -38,7 +38,18 @@ export default function HistoricoPage() {
   const { user } = useAuth()
   const { pontos, deletarPonto } = usePontos()
   const { isMesFechado, fecharMes, reabrirMes } = useMesesFechados()
-  const config = getConfig(user?.id)
+  const [config, setConfig] = useState({
+    jornadaMinutos: 480,
+    intervaloMinutos: 60,
+    empresaNome: '',
+    diasTrabalho: [1, 2, 3, 4, 5],
+    horaEntradaPadrao: '08:00',
+    horaSaidaPadrao: '17:00'
+  })
+  useEffect(() => {
+    if (!user) return
+    getConfig(user.id).then(cfg => { if (cfg) setConfig(cfg) })
+  }, [user])
   const [mesSelecionado, setMesSelecionado] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
