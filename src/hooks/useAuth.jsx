@@ -3,6 +3,10 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
+function hashSimples(str) {
+  return btoa(encodeURIComponent(str))
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +37,7 @@ export function AuthProvider({ children }) {
     if (!supabase) {
       const users = JSON.parse(localStorage.getItem('ponto_facil_users') || '{}')
       const found = users[email.toLowerCase()]
-      if (!found || found.password !== password) throw new Error('E-mail ou senha inválidos')
+      if (!found || found.password !== hashSimples(password)) throw new Error('E-mail ou senha inválidos')
       const userData = { email: found.email, id: found.id }
       localStorage.setItem('ponto_facil_user', JSON.stringify(userData))
       setUser(userData)
@@ -49,7 +53,7 @@ export function AuthProvider({ children }) {
       const users = JSON.parse(localStorage.getItem('ponto_facil_users') || '{}')
       const key = email.toLowerCase()
       if (users[key]) throw new Error('E-mail já cadastrado')
-      const newUser = { id: crypto.randomUUID(), email, password }
+      const newUser = { id: crypto.randomUUID(), email, password: hashSimples(password) }
       users[key] = newUser
       localStorage.setItem('ponto_facil_users', JSON.stringify(users))
       const userData = { email, id: newUser.id }
