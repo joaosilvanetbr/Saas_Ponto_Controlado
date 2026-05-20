@@ -1,14 +1,14 @@
 import { useEffect } from 'react'
 
 const CONFIG = {
-  entrada: { label: 'Registrar Entrada', color: '#0A7EA4' },
-  saida: { label: 'Registrar Saída', color: '#FF3B30' },
-  saida_almoco: { label: 'Saída para Almoço', color: '#FF9500' },
-  retorno_almoco: { label: 'Retorno do Almoço', color: '#34C759' },
+  entrada: { label: 'Registrar Entrada', bg: 'var(--color-accent)', shadow: 'rgba(232, 84, 26, 0.35)' },
+  saida: { label: 'Registrar Saída', bg: 'var(--color-danger)', shadow: 'rgba(255, 107, 107, 0.35)' },
+  saida_almoco: { label: 'Saída para Almoço', bg: 'var(--color-warning)', shadow: 'rgba(245, 166, 35, 0.35)' },
+  retorno_almoco: { label: 'Retorno do Almoço', bg: 'var(--color-success)', shadow: 'rgba(92, 184, 92, 0.35)' },
 }
 
 export default function BaterPontoButton({ tipo = 'entrada', onPress, loading }) {
-  const cfg = CONFIG[tipo] || { label: 'Bater Ponto', color: '#0A7EA4' }
+  const cfg = CONFIG[tipo] || { label: 'Bater Ponto', bg: 'var(--color-accent)', shadow: 'rgba(232, 84, 26, 0.35)' }
 
   useEffect(() => {
     const id = 'spin-style'
@@ -28,8 +28,8 @@ export default function BaterPontoButton({ tipo = 'entrada', onPress, loading })
         width: '100%',
         minHeight: '60px',
         borderRadius: 'var(--radius-xl)',
-        background: cfg.color,
-        color: 'white',
+        background: cfg.bg,
+        color: 'var(--color-accent-on)',
         fontSize: 'var(--text-lg)',
         fontWeight: 700,
         fontFamily: 'var(--font-native)',
@@ -41,7 +41,7 @@ export default function BaterPontoButton({ tipo = 'entrada', onPress, loading })
         gap: 'var(--space-3)',
         letterSpacing: '-0.3px',
         transition: 'transform var(--transition-spring), opacity 150ms ease',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+        boxShadow: `0 4px 16px ${cfg.shadow}`,
         WebkitTapHighlightColor: 'transparent',
         opacity: loading ? 0.5 : 1,
       }}

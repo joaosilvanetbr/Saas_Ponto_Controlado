@@ -75,8 +75,8 @@ function styles(isDark) {
       paddingLeft: 'var(--space-4)',
       paddingRight: 'var(--space-4)',
       background: isDark
-        ? 'rgba(14, 15, 13, 0.88)'
-        : 'rgba(244, 244, 239, 0.88)',
+        ? 'rgba(8, 6, 18, 0.90)'
+        : 'rgba(13, 10, 26, 0.88)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--color-divider)',

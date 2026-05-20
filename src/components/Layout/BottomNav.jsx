@@ -88,7 +88,7 @@ export default function BottomNav() {
             ...styles(isDark).fab,
             ...(fabPressed ? {
               transform: 'translateY(-12px) scale(0.93)',
-              boxShadow: '0 2px 8px rgba(26, 107, 69, 0.30)',
+              boxShadow: '0 2px 8px rgba(232, 84, 26, 0.35)',
             } : {}),
           }}
           aria-label="Registrar ponto"
@@ -182,7 +182,7 @@ function styles(isDark) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      boxShadow: '0 4px 16px rgba(26, 107, 69, 0.45)',
+      boxShadow: '0 4px 20px rgba(232, 84, 26, 0.50)',
       transform: 'translateY(-12px)',
       WebkitTapHighlightColor: 'transparent',
       transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms ease',
