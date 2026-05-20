@@ -1,5 +1,20 @@
 import { supabase } from '../lib/supabase'
 
+export const DEFAULT_CONFIG = {
+  jornadaMinutos: 480,
+  intervaloMinutos: 60,
+  empresaNome: '',
+  diasTrabalho: [1, 2, 3, 4, 5],
+  horaEntradaPadrao: '08:00',
+  horaSaidaPadrao: '17:00',
+  jornadaPadrao: [
+    { tipo: 'entrada', hora: '08:00' },
+    { tipo: 'saida',   hora: '12:00' },
+    { tipo: 'entrada', hora: '13:00' },
+    { tipo: 'saida',   hora: '17:00' },
+  ],
+}
+
 async function getConfigSupabase(userId) {
   if (!supabase || !userId) return null
 
@@ -18,6 +33,7 @@ async function getConfigSupabase(userId) {
     diasTrabalho:      data.dias_trabalho ?? [1, 2, 3, 4, 5],
     horaEntradaPadrao: data.hora_entrada_padrao ?? '08:00',
     horaSaidaPadrao:   data.hora_saida_padrao ?? '17:00',
+    jornadaPadrao:     data.jornada_padrao ?? [],
   }
 }
 
@@ -34,6 +50,7 @@ async function saveConfigSupabase(config, userId) {
       dias_trabalho:       config.diasTrabalho,
       hora_entrada_padrao: config.horaEntradaPadrao,
       hora_saida_padrao:   config.horaSaidaPadrao,
+      jornada_padrao:      config.jornadaPadrao ?? [],
       updated_at:          new Date().toISOString(),
     }, { onConflict: 'user_id' })
 }

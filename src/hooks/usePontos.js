@@ -13,6 +13,7 @@ function mapRow(row) {
     saida2: row.saida2 || '',
     obs: row.obs || '',
     horasExtrasMin: row.horas_extras_min || 0,
+    marcacoes: row.marcacoes || [],  // NOVO
   }
 }
 
@@ -57,6 +58,7 @@ export function usePontos() {
       saida2: ponto.saida2 || null,
       obs: ponto.obs || null,
       horas_extras_min: ponto.horasExtrasMin || 0,
+      marcacoes: ponto.marcacoes || [],  // NOVO
       updated_at: new Date().toISOString(),
     }
 
