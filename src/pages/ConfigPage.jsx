@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { getConfig, saveConfig } from '../utils/calcHoras'
+import { getConfig, saveConfig, getConfigSupabase, saveConfigSupabase } from '../utils/calcHoras'
 import { useNotificacoes } from '../hooks/useNotificacoes'
 import { useInstallPWA } from '../hooks/useInstallPWA'
 import AppLayout from '../components/Layout/AppLayout'
@@ -50,15 +50,19 @@ export default function ConfigPage() {
   const [lembretes, setLembretes] = useState(() => getConfig(user?.id).lembretes || { ativo: false, entrada: '08:00', saida: '17:48' })
 
   useEffect(() => {
-    const cfg = getConfig(user?.id)
-    setNome(cfg.nome || user?.email?.split('@')[0] || '')
-    setEmpresaNome(cfg.empresaNome || '')
-    const intMin = cfg.intervaloMinutos ?? 60
-    setIntervaloMinutos(intMin)
-    setIntervaloSelecionado(INTERVALOS_PRESET.find(p => p.minutos === intMin)?.minutos ?? null)
-    setDiasTrabalho(cfg.diasTrabalho || [1, 2, 3, 4, 5])
-    setHoraEntradaPadrao(cfg.horaEntradaPadrao || '08:00')
-    setHoraSaidaPadrao(cfg.horaSaidaPadrao || '17:00')
+    async function carregarConfig() {
+      const configSupa = await getConfigSupabase(user?.id)
+      const cfg = configSupa || getConfig(user?.id)
+      setNome(cfg.nome || user?.email?.split('@')[0] || '')
+      setEmpresaNome(cfg.empresaNome || '')
+      const intMin = cfg.intervaloMinutos ?? 60
+      setIntervaloMinutos(intMin)
+      setIntervaloSelecionado(INTERVALOS_PRESET.find(p => p.minutos === intMin)?.minutos ?? null)
+      setDiasTrabalho(cfg.diasTrabalho || [1, 2, 3, 4, 5])
+      setHoraEntradaPadrao(cfg.horaEntradaPadrao || '08:00')
+      setHoraSaidaPadrao(cfg.horaSaidaPadrao || '17:00')
+    }
+    if (user) carregarConfig()
   }, [user])
 
   const jornMin = calcularJornada(horaEntradaPadrao, horaSaidaPadrao, intervaloMinutos)
@@ -66,7 +70,7 @@ export default function ConfigPage() {
 
   useEffect(() => {
     const config = getConfig(user?.id)
-    saveConfig({
+    const novaConfig = {
       ...config,
       jornadaMinutos: jornMin,
       nome,
@@ -76,7 +80,9 @@ export default function ConfigPage() {
       horaEntradaPadrao,
       horaSaidaPadrao,
       lembretes,
-    }, user?.id)
+    }
+    saveConfig(novaConfig, user?.id)
+    saveConfigSupabase(novaConfig, user?.id)
   }, [horaEntradaPadrao, horaSaidaPadrao, intervaloMinutos])
 
   function toggleDia(dia) {
@@ -119,7 +125,7 @@ export default function ConfigPage() {
     }
 
     setLoading(true)
-    saveConfig({
+    const novaConfig = {
       jornadaMinutos: jornMin,
       nome,
       empresaNome,
@@ -128,7 +134,9 @@ export default function ConfigPage() {
       horaEntradaPadrao,
       horaSaidaPadrao,
       lembretes,
-    }, user?.id)
+    }
+    saveConfig(novaConfig, user?.id)
+    saveConfigSupabase(novaConfig, user?.id)
     setLoading(false)
     setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)

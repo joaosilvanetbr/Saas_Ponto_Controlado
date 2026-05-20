@@ -1,31 +1,50 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from './useAuth'
+import { supabase } from '../lib/supabase'
 
-function getStorageKey(userId) {
-  return `ponto_facil_pontos_${userId}`
+function lsKey(userId) { return `ponto_facil_pontos_${userId}` }
+function lsGet(userId) {
+  try { return JSON.parse(localStorage.getItem(lsKey(userId)) || '[]') } catch { return [] }
+}
+function lsSave(userId, pontos) {
+  localStorage.setItem(lsKey(userId), JSON.stringify(pontos))
 }
 
-function getPontos(userId) {
-  try {
-    const raw = localStorage.getItem(getStorageKey(userId))
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
+function mapRow(row) {
+  return {
+    id: row.id,
+    data: row.data,
+    tipo: row.tipo,
+    entrada1: row.entrada1 || '',
+    saida1: row.saida1 || '',
+    entrada2: row.entrada2 || '',
+    saida2: row.saida2 || '',
+    obs: row.obs || '',
+    horasExtrasMin: row.horas_extras_min || 0,
   }
-}
-
-function savePontos(userId, pontos) {
-  localStorage.setItem(getStorageKey(userId), JSON.stringify(pontos))
 }
 
 export function usePontos() {
   const { user } = useAuth()
   const [pontos, setPontos] = useState([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      setPontos(getPontos(user.id))
+    if (!user) return
+    if (!supabase) {
+      setPontos(lsGet(user.id))
+      return
     }
+    setLoading(true)
+    supabase
+      .from('pontos')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('data', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setPontos(data.map(mapRow))
+        setLoading(false)
+      })
   }, [user])
 
   const getPontoDoDia = useCallback((data) => {
@@ -37,25 +56,72 @@ export function usePontos() {
     return pontos.filter((p) => p.data.startsWith(prefix))
   }, [pontos])
 
-  const salvarPonto = useCallback((ponto) => {
-    setPontos(prev => {
-      const lista = [...prev]
-      const idx = lista.findIndex((p) => p.data === ponto.data)
-      if (idx >= 0) {
-        lista[idx] = { ...lista[idx], ...ponto }
-      } else {
-        lista.push(ponto)
-      }
-      savePontos(user.id, lista)
-      return lista
-    })
+  const salvarPonto = useCallback(async (ponto) => {
+    if (!user) return
+
+    if (!supabase) {
+      setPontos(prev => {
+        const lista = [...prev]
+        const idx = lista.findIndex((p) => p.data === ponto.data)
+        if (idx >= 0) lista[idx] = { ...lista[idx], ...ponto }
+        else lista.push(ponto)
+        lsSave(user.id, lista)
+        return lista
+      })
+      return
+    }
+
+    const payload = {
+      user_id: user.id,
+      data: ponto.data,
+      tipo: ponto.tipo || 'registro',
+      entrada1: ponto.entrada1 || null,
+      saida1: ponto.saida1 || null,
+      entrada2: ponto.entrada2 || null,
+      saida2: ponto.saida2 || null,
+      obs: ponto.obs || null,
+      horas_extras_min: ponto.horasExtrasMin || 0,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .from('pontos')
+      .upsert(payload, { onConflict: 'user_id,data' })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const mapped = mapRow(data)
+      setPontos(prev => {
+        const lista = [...prev]
+        const idx = lista.findIndex((p) => p.data === mapped.data)
+        if (idx >= 0) lista[idx] = mapped
+        else lista.unshift(mapped)
+        return lista
+      })
+    }
   }, [user])
 
-  const deletarPonto = useCallback((data) => {
-    const lista = getPontos(user.id).filter((p) => p.data !== data)
-    savePontos(user.id, lista)
-    setPontos(lista)
+  const deletarPonto = useCallback(async (data) => {
+    if (!user) return
+
+    if (!supabase) {
+      setPontos(prev => {
+        const lista = prev.filter((p) => p.data !== data)
+        lsSave(user.id, lista)
+        return lista
+      })
+      return
+    }
+
+    await supabase
+      .from('pontos')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('data', data)
+
+    setPontos(prev => prev.filter((p) => p.data !== data))
   }, [user])
 
-  return { pontos, getPontoDoDia, getPontosDoMes, salvarPonto, deletarPonto }
+  return { pontos, loading, getPontoDoDia, getPontosDoMes, salvarPonto, deletarPonto }
 }

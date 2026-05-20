@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabase'
+
 const CONFIG_KEY_PREFIX = 'ponto_facil_config_'
 
 const DEFAULT_CONFIG = {
@@ -26,6 +28,38 @@ export function getConfig(userId = null) {
 export function saveConfig(config, userId = null) {
   const key = userId ? CONFIG_KEY_PREFIX + userId : 'ponto_facil_config'
   localStorage.setItem(key, JSON.stringify(config))
+}
+
+export async function getConfigSupabase(userId) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('config_usuarios')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  if (error || !data) return null
+  return {
+    jornadaMinutos:      data.jornada_minutos,
+    empresaNome:         data.empresa_nome,
+    intervaloMinutos:    data.intervalo_minutos,
+    diasTrabalho:        data.dias_trabalho,
+    horaEntradaPadrao:   data.hora_entrada_padrao,
+    horaSaidaPadrao:     data.hora_saida_padrao,
+  }
+}
+
+export async function saveConfigSupabase(config, userId) {
+  if (!supabase || !userId) return
+  await supabase.from('config_usuarios').upsert({
+    user_id:             userId,
+    jornada_minutos:     config.jornadaMinutos,
+    empresa_nome:        config.empresaNome,
+    intervalo_minutos:   config.intervaloMinutos,
+    dias_trabalho:       config.diasTrabalho,
+    hora_entrada_padrao: config.horaEntradaPadrao,
+    hora_saida_padrao:   config.horaSaidaPadrao,
+    updated_at:          new Date().toISOString(),
+  }, { onConflict: 'user_id' })
 }
 
 export function calcularHorasTrabalhadas(ponto) {
