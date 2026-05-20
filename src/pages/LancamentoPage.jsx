@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { usePontos } from '../hooks/usePontos'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useMesesFechados } from '../hooks/useMesesFechados'
-import { calcularHorasTrabalhadas, minutosParaHHMM } from '../utils/calcHoras'
 import MarcacoesEditor from '../components/UI/MarcacoesEditor'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
@@ -31,7 +30,6 @@ export default function LancamentoPage() {
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [existente, setExistente] = useState(null)
   const [marcacoes, setMarcacoes] = useState([])
 
   const precisaHoras = tipo === 'extra_pago' || tipo === 'extra_banco'
@@ -40,17 +38,22 @@ export default function LancamentoPage() {
   const mesDaData = data ? data.slice(0, 7) : null
   const mesBloqueado = mesDaData ? isMesFechado(mesDaData) : false
 
-  useEffect(() => {
-    if (data && isCorrecao) {
-      const reg = getPontoDoDia(data)
-      setExistente(reg)
-      if (reg) {
-        setMarcacoes(reg.marcacoes || [])
-      } else {
-        setMarcacoes([])
-      }
+  function handleDataChange(e) {
+    const newData = e.target.value
+    setData(newData)
+    if (isCorrecao && newData) {
+      const reg = getPontoDoDia(newData)
+      setMarcacoes(reg?.marcacoes || [])
     }
-  }, [data, isCorrecao])
+  }
+
+  function handleTipoChange(newTipo) {
+    setTipo(newTipo)
+    if (newTipo === 'correcao' && data) {
+      const reg = getPontoDoDia(data)
+      setMarcacoes(reg?.marcacoes || [])
+    }
+  }
 
   function parseHoras(str) {
     if (!str) return 0
@@ -58,7 +61,7 @@ export default function LancamentoPage() {
     return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0)
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!data) return
 
@@ -76,7 +79,7 @@ export default function LancamentoPage() {
         user_id: user.id,
         data,
         tipo: isCorrecao ? 'registro' : tipo,
-        observacao: obs || undefined,
+        obs: obs || undefined,
       }
 
       if (precisaHoras) {
@@ -100,14 +103,13 @@ export default function LancamentoPage() {
         })
       }
 
-      salvarPonto(dados)
+      await salvarPonto(dados)
       setMsg('Lançamento salvo com sucesso!')
       setTimeout(() => setMsg(''), 2500)
       setData('')
       setTipo('falta')
       setHoras('')
       setObs('')
-      setExistente(null)
       setMarcacoes([])
     } catch (err) {
       setError(err.message || 'Erro ao salvar')
@@ -142,7 +144,7 @@ export default function LancamentoPage() {
           <button
             key={t.value}
             type="button"
-            onClick={() => setTipo(t.value)}
+            onClick={() => handleTipoChange(t.value)}
             style={{
               background: tipo === t.value ? 'var(--color-accent-tonal)' : 'var(--color-surface)',
               color: tipo === t.value ? 'var(--color-accent)' : 'var(--color-text-secondary)',
@@ -164,7 +166,7 @@ export default function LancamentoPage() {
       <Card style={{ marginBottom: 'var(--space-4)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div>
-            <Input label="Data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            <Input label="Data" type="date" value={data} onChange={handleDataChange} />
             {mesBloqueado && (
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', marginTop: 'var(--space-1)', marginBottom: 0 }}>
                 🔒 Este mês está fechado. Reabra em Histórico para editar.

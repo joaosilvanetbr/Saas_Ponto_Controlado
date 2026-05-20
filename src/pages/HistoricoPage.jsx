@@ -318,10 +318,10 @@ export default function HistoricoPage() {
                 <SaldoBadge minutos={detalhe.acumulado} formatter={minutosParaTexto} />
               </div>
 
-              {detalhe.observacao && (
+              {detalhe.obs && (
                 <div style={{ paddingTop: 'var(--space-2)', borderTop: '1px solid var(--color-divider)' }}>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>Observação</p>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0 }}>{detalhe.observacao}</p>
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0 }}>{detalhe.obs}</p>
                 </div>
               )}
             </div>

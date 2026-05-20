@@ -61,7 +61,7 @@ export default function DayCard({ ponto, saldoMinutos, horasFormatadas, formatte
         </div>
       )}
 
-      {ponto.observacao && (
+      {ponto.obs && (
         <div style={{
           fontSize: 'var(--text-sm)',
           color: 'var(--color-text-muted)',
@@ -69,7 +69,7 @@ export default function DayCard({ ponto, saldoMinutos, horasFormatadas, formatte
           paddingTop: 'var(--space-1)',
           borderTop: '1px solid var(--color-divider)',
         }}>
-          {ponto.observacao}
+          {ponto.obs}
         </div>
       )}
     </div>

@@ -18,8 +18,13 @@ function escapeCsv(value) {
   return str
 }
 
+function formatarMarcacoes(marcacoes) {
+  if (!marcacoes || marcacoes.length === 0) return ''
+  return marcacoes.map(m => `${m.tipo} ${m.hora}`).join(' | ')
+}
+
 export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) {
-  const header = 'Data,Tipo,Entrada 1,Saída 1,Entrada 2,Saída 2,Horas Trabalhadas,Saldo do Dia,Horas Extras,Observação'
+  const header = 'Data,Tipo,Marcações,Entrada 1,Saída 1,Entrada 2,Saída 2,Horas Trabalhadas,Saldo do Dia,Horas Extras,Observação'
 
   const rows = registros.map((ponto) => {
     const trabalhadas = calcularMinutosTrabalhados(ponto)
@@ -30,6 +35,7 @@ export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480, i
     return [
       ponto.data,
       TIPOS_LABEL[ponto.tipo] || ponto.tipo,
+      formatarMarcacoes(ponto.marcacoes),
       ponto.entrada1 || '',
       ponto.saida1 || '',
       ponto.entrada2 || '',
@@ -37,7 +43,7 @@ export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480, i
       formatarMinutos(trabalhadas),
       formatarMinutos(saldo),
       ponto.horasExtrasMin ? formatarMinutos(ponto.horasExtrasMin) : '',
-      ponto.observacao || '',
+      ponto.obs || '',
     ].map(escapeCsv).join(',')
   })
 
