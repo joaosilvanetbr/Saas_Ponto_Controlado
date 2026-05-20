@@ -32,7 +32,7 @@ export function useNotificacoes(userId = null) {
     if (config.lembretes.saida && horaAtual === config.lembretes.saida) {
       enviarNotificacao('⏱ Hora de registrar saída!', 'Não esqueça de bater o ponto de saída.')
     }
-  }, [enviarNotificacao])
+  }, [enviarNotificacao, userId])
 
   return { pedirPermissao, enviarNotificacao, verificarLembrete }
 }
