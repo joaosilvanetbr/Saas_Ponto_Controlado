@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './hooks/useAuth.jsx'
+import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import { useNotificacoes } from './hooks/useNotificacoes'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
