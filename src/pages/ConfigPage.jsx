@@ -115,7 +115,7 @@ export default function ConfigPage() {
   const intHoras = Math.floor(intervaloMinutos / 60)
   const intMins = intervaloMinutos % 60
 
-  function salvar(e) {
+  async function salvar(e) {
     e.preventDefault()
 
     if (!jornadaValida) {
@@ -136,7 +136,7 @@ export default function ConfigPage() {
       lembretes,
     }
     saveConfig(novaConfig, user?.id)
-    saveConfigSupabase(novaConfig, user?.id)
+    await saveConfigSupabase(novaConfig, user?.id)
     setLoading(false)
     setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)
