@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useBancoHoras } from '../hooks/useBancoHoras'
 import { useTimer } from '../hooks/useTimer'
-import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
+import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig, calcularPrevisaoSaida, calcularSaldoParcial } from '../utils/calcHoras'
 import { diaMaisProdutivo, mediaSaldoUltimos30, sequenciaSemFalta } from '../utils/calcInsights'
 import AppLayout from '../components/Layout/AppLayout'
 import BaterPontoButton from '../components/Ponto/BaterPontoButton'
@@ -52,6 +52,14 @@ export default function HomePage() {
   const minutosTrabalhandoHoje = useTimer(
     pontoHoje?.entrada1 && !pontoHoje?.saida1 ? pontoHoje.entrada1 : null
   )
+
+  const previsaoSaida = pontoHoje?.entrada1 && !pontoHoje?.saida1
+    ? calcularPrevisaoSaida(pontoHoje.entrada1, config.jornadaMinutos, config.intervaloMinutos)
+    : null
+
+  const saldoParcial = pontoHoje?.entrada1 && !pontoHoje?.saida1
+    ? calcularSaldoParcial(minutosTrabalhandoHoje, config.jornadaMinutos)
+    : null
 
   function proximoCampo(ponto) {
     if (!ponto) return 'entrada1'
@@ -130,14 +138,6 @@ export default function HomePage() {
 
   const ehSaida = getTipoBotao(pontoHoje) === 'saida'
 
-  const [ehPrev, emPrev] = pontoHoje?.entrada1 ? pontoHoje.entrada1.split(':').map(Number) : [0, 0]
-  const saidaPrevMin = pontoHoje?.entrada1 ? ehPrev * 60 + emPrev + config.jornadaMinutos + (config.intervaloMinutos || 0) : 0
-  const saidaPrevStr = pontoHoje?.entrada1 && !pontoHoje?.saida1 ? minutosParaHHMM(saidaPrevMin) : null
-
-  const saldoParcial = pontoHoje?.entrada1 && !pontoHoje?.saida1
-    ? minutosTrabalhandoHoje - config.jornadaMinutos
-    : null
-
   return (
     <AppLayout title="Hoje">
       {msg && (
@@ -207,56 +207,61 @@ export default function HomePage() {
             {pontoHoje?.entrada1 && !pontoHoje?.saida1 && (
               <>
                 <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                  background: 'var(--color-surface-tonal)',
-                  borderRadius: 'var(--radius-pill)',
-                  padding: 'var(--space-1) var(--space-3)',
-                  marginBottom: 'var(--space-2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  marginBottom: 'var(--space-3)',
                 }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: 'var(--color-accent)',
-                    animation: 'pulse 1.5s ease-in-out infinite',
-                    display: 'inline-block',
-                  }} />
-                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                    trabalhando há {minutosParaTexto(minutosTrabalhandoHoje)}
-                  </span>
-                </div>
 
-                {saidaPrevStr && (
+                  {/* Badge timer */}
                   <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                    marginBottom: 'var(--space-3)',
+                    background: 'var(--color-surface-tonal)',
+                    borderRadius: 'var(--radius-pill)',
+                    padding: 'var(--space-1) var(--space-3)',
                   }}>
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-                      🏁 Previsão de saída: {saidaPrevStr}
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: 'var(--color-accent)',
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                      display: 'inline-block',
+                    }} />
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                      trabalhando há {minutosParaTexto(minutosTrabalhandoHoje)}
                     </span>
                   </div>
-                )}
 
-                {saldoParcial !== null && (
-                  <div style={{
-                    background: saldoParcial >= 0 ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: 'var(--space-4) var(--space-6)',
-                    display: 'inline-block',
-                    marginBottom: 'var(--space-3)',
-                  }}>
-                    <p style={{ fontSize: 'var(--text-xs)', color: saldoParcial >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 600,
-                      textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-                      saldo parcial
-                    </p>
-                    <p style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: saldoParcial >= 0 ? 'var(--color-success)' : 'var(--color-danger)', margin: 0, lineHeight: 1.1 }}>
-                      {saldoParcial >= 0 ? '+' : ''}{minutosParaTexto(Math.abs(saldoParcial))}
-                    </p>
-                    {!pontoHoje?.entrada2 && (config.intervaloMinutos || 0) > 0 && (
-                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 'var(--space-2) 0 0' }}>
-                        (intervalo não descontado)
-                      </p>
-                    )}
-                  </div>
-                )}
+                  {/* Previsão de saída */}
+                  {previsaoSaida && (
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--color-text-muted)',
+                    }}>
+                      <span>🏁</span>
+                      <span>Previsão de saída: <strong style={{ color: 'var(--color-text)' }}>{previsaoSaida}</strong></span>
+                    </div>
+                  )}
+
+                  {/* Saldo parcial em tempo real */}
+                  {saldoParcial !== null && (
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)',
+                      fontSize: 'var(--text-xs)',
+                      color: saldoParcial >= 0 ? 'var(--color-success)' : 'var(--color-text-muted)',
+                    }}>
+                      <span>{saldoParcial >= 0 ? '📈' : '⏳'}</span>
+                      <span>
+                        {saldoParcial >= 0
+                          ? `+${minutosParaTexto(saldoParcial)} acima da jornada`
+                          : `faltam ${minutosParaTexto(Math.abs(saldoParcial))} para completar`
+                        }
+                      </span>
+                    </div>
+                  )}
+
+                </div>
               </>
             )}
 

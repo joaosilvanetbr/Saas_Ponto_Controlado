@@ -82,3 +82,16 @@ export function minutosParaTexto(minutos) {
   if (m === 0) return `${sinal}${h}h`
   return `${sinal}${h}h${String(m).padStart(2, '0')}min`
 }
+
+export function calcularPrevisaoSaida(entrada1, jornadaMinutos, intervaloMinutos) {
+  if (!entrada1) return null
+  const [h, m] = entrada1.split(':').map(Number)
+  const totalMin = h * 60 + m + jornadaMinutos + intervaloMinutos
+  const hSaida = Math.floor(totalMin / 60) % 24
+  const mSaida = totalMin % 60
+  return `${String(hSaida).padStart(2, '0')}:${String(mSaida).padStart(2, '0')}`
+}
+
+export function calcularSaldoParcial(minutosDecorridos, jornadaMinutos) {
+  return minutosDecorridos - jornadaMinutos
+}
