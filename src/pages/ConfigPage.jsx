@@ -82,7 +82,7 @@ export default function ConfigPage() {
       lembretes,
     }
     saveConfig(novaConfig, user?.id)
-    saveConfigSupabase(novaConfig, user?.id)
+    // saveConfigSupabase was removed from here - now only saves to Supabase when clicking Save
   }, [horaEntradaPadrao, horaSaidaPadrao, intervaloMinutos])
 
   function toggleDia(dia) {
