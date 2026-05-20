@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useMesesFechados } from '../hooks/useMesesFechados'
-import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
+import { calcularHorasTrabalhadas, calcularSaldoDia, calcularMinutosPorMarcacoes, calcularSaldoDiaMarcacoes, calcularJornadaPadraoMinutos, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
 import KPICard from '../components/UI/KPICard'
 import EmptyState from '../components/UI/EmptyState'
-import SkeletonCard from '../components/UI/SkeletonCard'
-import DayCard from '../components/Historico/DayCard'
 import SaldoBadge from '../components/UI/SaldoBadge'
 
 const TIPOS = {
@@ -49,7 +47,16 @@ export default function HistoricoPage() {
   useEffect(() => {
     if (!user) return
     getConfig(user.id).then(cfg => { if (cfg) setConfig(cfg) })
+      .catch(err => console.error('Erro ao carregar config:', err))
   }, [user])
+
+  function calcularHorasPonto(ponto) {
+    if (ponto.marcacoes && ponto.marcacoes.length > 0) {
+      return calcularMinutosPorMarcacoes(ponto.marcacoes)
+    }
+    return calcularHorasTrabalhadas(ponto)
+  }
+
   const [mesSelecionado, setMesSelecionado] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -65,18 +72,26 @@ export default function HistoricoPage() {
     .sort((a, b) => a.data.localeCompare(b.data))
 
   const pontosComAcumulado = useMemo(() => {
-    let acumulado = 0
-    return pontosDoMes.map((ponto) => {
-      const saldo = calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)
-      acumulado += saldo
-      return { ...ponto, saldo, acumulado }
-    })
-  }, [pontosDoMes, config.jornadaMinutos])
+    const jornadaFinal = config.jornadaPadrao?.length
+      ? calcularJornadaPadraoMinutos(config.jornadaPadrao)
+      : config.jornadaMinutos > 0
+        ? config.jornadaMinutos
+        : 480
+
+    return pontosDoMes.reduce((acc, ponto) => {
+      const saldo = ponto.marcacoes && ponto.marcacoes.length > 0
+        ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
+        : calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)
+      const acumulado = (acc.length > 0 ? acc[acc.length - 1].acumulado : 0) + saldo
+      acc.push({ ...ponto, saldo, acumulado })
+      return acc
+    }, [])
+  }, [pontosDoMes, config.jornadaMinutos, config.jornadaPadrao, config.intervaloMinutos])
 
   const pontosReverso = [...pontosComAcumulado].reverse()
   const saldoFinal = pontosComAcumulado.length > 0 ? pontosComAcumulado[pontosComAcumulado.length - 1].acumulado : 0
 
-  const totalHoras = pontosComAcumulado.reduce((sum, p) => sum + calcularHorasTrabalhadas(p), 0)
+  const totalHoras = pontosComAcumulado.reduce((sum, p) => sum + calcularHorasPonto(p), 0)
   const totalFaltas = pontosComAcumulado.filter((p) => p.tipo === 'falta').length
   const totalDias = pontosComAcumulado.length
 
@@ -168,7 +183,7 @@ export default function HistoricoPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           {pontosReverso.map((ponto) => {
             const tipo = TIPOS[ponto.tipo] || TIPOS.registro
-            const trabalhadas = calcularHorasTrabalhadas(ponto)
+            const trabalhadas = calcularHorasPonto(ponto)
 
             return (
               <button
@@ -235,6 +250,19 @@ export default function HistoricoPage() {
                 <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>{TIPOS[detalhe.tipo]?.emoji} {TIPOS[detalhe.tipo]?.label}</span>
               </div>
 
+              {detalhe.marcacoes && detalhe.marcacoes.length > 0 && (
+                <div style={{ paddingTop: 'var(--space-1)' }}>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-2)' }}>Marcações</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                    {detalhe.marcacoes.map((m, i) => (
+                      <span key={i} style={{ fontSize: 'var(--text-sm)', fontFamily: 'monospace', fontWeight: 500, color: 'var(--color-text)', background: m.tipo === 'entrada' ? 'var(--color-success-bg)' : 'var(--color-warning-bg)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
+                        {m.tipo === 'entrada' ? '▶' : '⏹'} {m.hora}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {detalhe.entrada1 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
                   <span style={{ color: 'var(--color-text-muted)' }}>Entrada 1</span>
@@ -260,10 +288,10 @@ export default function HistoricoPage() {
                 </div>
               )}
 
-              {calcularHorasTrabalhadas(detalhe) > 0 && (
+              {calcularHorasPonto(detalhe) > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--color-divider)' }}>
                   <span style={{ color: 'var(--color-text-muted)' }}>Trabalhado</span>
-                  <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>{minutosParaHHMM(calcularHorasTrabalhadas(detalhe))}</span>
+                  <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>{minutosParaHHMM(calcularHorasPonto(detalhe))}</span>
                 </div>
               )}
 
