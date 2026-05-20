@@ -50,7 +50,8 @@ export default function HistoricoPage() {
       .catch(err => console.error('Erro ao carregar config:', err))
   }, [user])
 
-  function calcularHorasPonto(ponto) {
+  // eslint-disable-next-line no-unused-vars
+  function calcularHorasPonto(ponto, _cfg) {
     if (ponto.marcacoes && ponto.marcacoes.length > 0) {
       return calcularMinutosPorMarcacoes(ponto.marcacoes)
     }
@@ -96,7 +97,7 @@ export default function HistoricoPage() {
   const pontosReverso = [...pontosComAcumulado].reverse()
   const saldoFinal = pontosComAcumulado.length > 0 ? pontosComAcumulado[pontosComAcumulado.length - 1].acumulado : 0
 
-  const totalHoras = pontosComAcumulado.reduce((sum, p) => sum + calcularHorasPonto(p), 0)
+  const totalHoras = pontosComAcumulado.reduce((sum, p) => sum + calcularHorasPonto(p, config), 0)
   const totalFaltas = pontosComAcumulado.filter((p) => p.tipo === 'falta').length
   const totalDias = pontosComAcumulado.length
 
@@ -188,7 +189,7 @@ export default function HistoricoPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           {pontosReverso.map((ponto) => {
             const tipo = TIPOS[ponto.tipo] || TIPOS.registro
-            const trabalhadas = calcularHorasPonto(ponto)
+            const trabalhadas = calcularHorasPonto(ponto, config)
 
             return (
               <button
@@ -293,10 +294,10 @@ export default function HistoricoPage() {
                 </div>
               )}
 
-              {calcularHorasPonto(detalhe) > 0 && (
+              {calcularHorasPonto(detalhe, config) > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--color-divider)' }}>
                   <span style={{ color: 'var(--color-text-muted)' }}>Trabalhado</span>
-                  <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>{minutosParaHHMM(calcularHorasPonto(detalhe))}</span>
+                  <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>{minutosParaHHMM(calcularHorasPonto(detalhe, config))}</span>
                 </div>
               )}
 
