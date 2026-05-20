@@ -18,12 +18,35 @@ const JORNADAS_PRESET = [
   { label: '9h',    minutos: 540  },
 ]
 
+const DIAS_SEMANA = [
+  { valor: 1, label: 'Seg' },
+  { valor: 2, label: 'Ter' },
+  { valor: 3, label: 'Qua' },
+  { valor: 4, label: 'Qui' },
+  { valor: 5, label: 'Sex' },
+  { valor: 6, label: 'Sáb' },
+  { valor: 0, label: 'Dom' },
+]
+
+const INTERVALOS_PRESET = [
+  { label: 'Sem intervalo', minutos: 0 },
+  { label: '30 min', minutos: 30 },
+  { label: '45 min', minutos: 45 },
+  { label: '1h', minutos: 60 },
+  { label: '1h30', minutos: 90 },
+]
+
 export default function ConfigPage() {
   const { user, logout } = useAuth()
   const { pedirPermissao } = useNotificacoes()
   const { podeInstalar, instalar } = useInstallPWA()
   const [jornadaMinutos, setJornadaMinutos] = useState(480)
   const [nome, setNome] = useState('')
+  const [empresaNome, setEmpresaNome] = useState('')
+  const [intervaloMinutos, setIntervaloMinutos] = useState(60)
+  const [diasTrabalho, setDiasTrabalho] = useState([1, 2, 3, 4, 5])
+  const [horaEntradaPadrao, setHoraEntradaPadrao] = useState('08:00')
+  const [horaSaidaPadrao, setHoraSaidaPadrao] = useState('17:00')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [erroJornada, setErroJornada] = useState('')
@@ -34,6 +57,11 @@ export default function ConfigPage() {
     const config = getConfig()
     setJornadaMinutos(config.jornadaMinutos || 480)
     setNome(config.nome || user?.email?.split('@')[0] || '')
+    setEmpresaNome(config.empresaNome || '')
+    setIntervaloMinutos(config.intervaloMinutos ?? 60)
+    setDiasTrabalho(config.diasTrabalho || [1, 2, 3, 4, 5])
+    setHoraEntradaPadrao(config.horaEntradaPadrao || '08:00')
+    setHoraSaidaPadrao(config.horaSaidaPadrao || '17:00')
   }, [user])
 
   function handleHorasChange(val) {
@@ -48,6 +76,12 @@ export default function ConfigPage() {
     setJornadaMinutos(h * 60 + m)
   }
 
+  function toggleDia(dia) {
+    setDiasTrabalho(prev =>
+      prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia].sort()
+    )
+  }
+
   function salvar(e) {
     e.preventDefault()
     setErroJornada('')
@@ -58,7 +92,16 @@ export default function ConfigPage() {
     }
 
     setLoading(true)
-    saveConfig({ jornadaMinutos, nome, lembretes })
+    saveConfig({
+      jornadaMinutos,
+      nome,
+      empresaNome,
+      intervaloMinutos,
+      diasTrabalho,
+      horaEntradaPadrao,
+      horaSaidaPadrao,
+      lembretes,
+    })
     setLoading(false)
     setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)
@@ -106,6 +149,74 @@ export default function ConfigPage() {
 
       <Card style={{ marginBottom: 'var(--space-3)' }}>
         <p style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-faint)', letterSpacing: '1px', marginBottom: 'var(--space-3)', marginTop: 0 }}>JORNADA</p>
+
+        <Input label="Nome da empresa" value={empresaNome} onChange={(e) => setEmpresaNome(e.target.value)} placeholder="Ex: Minha Empresa LTDA" style={{ marginBottom: 'var(--space-3)' }} />
+
+        <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+          <Input label="Entrada padrão" type="time" value={horaEntradaPadrao} onChange={(e) => setHoraEntradaPadrao(e.target.value)} style={{ flex: 1 }} />
+          <Input label="Saída padrão" type="time" value={horaSaidaPadrao} onChange={(e) => setHoraSaidaPadrao(e.target.value)} style={{ flex: 1 }} />
+        </div>
+
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--space-2)' }}>
+            Intervalo
+          </label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            {INTERVALOS_PRESET.map((i) => (
+              <button
+                key={i.minutos}
+                type="button"
+                onClick={() => setIntervaloMinutos(i.minutos)}
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  borderRadius: 'var(--radius-pill)',
+                  border: `1.5px solid ${intervaloMinutos === i.minutos ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                  background: intervaloMinutos === i.minutos ? 'var(--color-accent-tonal)' : 'var(--color-surface)',
+                  color: intervaloMinutos === i.minutos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                  fontWeight: intervaloMinutos === i.minutos ? 600 : 400,
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-native)',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                {i.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--space-2)' }}>
+            Dias de trabalho
+          </label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            {DIAS_SEMANA.map((d) => {
+              const ativo = diasTrabalho.includes(d.valor)
+              return (
+                <button
+                  key={d.valor}
+                  type="button"
+                  onClick={() => toggleDia(d.valor)}
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    borderRadius: 'var(--radius-pill)',
+                    border: `1.5px solid ${ativo ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                    background: ativo ? 'var(--color-accent-tonal)' : 'var(--color-surface)',
+                    color: ativo ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                    fontWeight: ativo ? 600 : 400,
+                    fontSize: 'var(--text-sm)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-native)',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  {d.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
           {JORNADAS_PRESET.map((j) => (
@@ -283,7 +394,7 @@ export default function ConfigPage() {
       </Card>
 
       <p style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: 'var(--space-6)', marginBottom: 'var(--space-4)' }}>
-        Ponto Fácil v0.1.0 — uso pessoal, sem valor legal
+        PontoControlado v0.1.0 — uso pessoal, sem valor legal
       </p>
     </AppLayout>
   )

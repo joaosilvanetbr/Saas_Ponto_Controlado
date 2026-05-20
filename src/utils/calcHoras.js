@@ -3,9 +3,23 @@ const STORAGE_KEY = 'ponto_facil_config'
 export function getConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { jornadaMinutos: 480 }
+    return raw ? JSON.parse(raw) : {
+      jornadaMinutos: 480,
+      empresaNome: '',
+      intervaloMinutos: 60,
+      diasTrabalho: [1, 2, 3, 4, 5],
+      horaEntradaPadrao: '08:00',
+      horaSaidaPadrao: '17:00',
+    }
   } catch {
-    return { jornadaMinutos: 480 }
+    return {
+      jornadaMinutos: 480,
+      empresaNome: '',
+      intervaloMinutos: 60,
+      diasTrabalho: [1, 2, 3, 4, 5],
+      horaEntradaPadrao: '08:00',
+      horaSaidaPadrao: '17:00',
+    }
   }
 }
 
