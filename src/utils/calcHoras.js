@@ -110,3 +110,119 @@ export function calcularPrevisaoSaida(entrada1, jornadaMinutos, intervaloMinutos
 export function calcularSaldoParcial(minutosDecorridos, jornadaMinutos) {
   return minutosDecorridos - jornadaMinutos
 }
+
+/**
+ * Recebe array de marcacoes: [{ tipo: 'entrada'|'saida', hora: 'HH:MM' }]
+ * Retorna total de minutos trabalhados somando os pares entrada/saida
+ */
+export function calcularMinutosPorMarcacoes(marcacoes) {
+  if (!marcacoes || marcacoes.length < 2) return 0
+  let total = 0
+  let ultimaEntrada = null
+  for (const m of marcacoes) {
+    if (m.tipo === 'entrada') {
+      ultimaEntrada = m.hora
+    } else if (m.tipo === 'saida' && ultimaEntrada) {
+      total += diffMinutos(ultimaEntrada, m.hora)
+      ultimaEntrada = null
+    }
+  }
+  return total
+}
+
+/**
+ * Calcula saldo do dia usando marcacoes reais
+ * saldo = total trabalhado - jornada padrão em minutos
+ */
+export function calcularSaldoDiaMarcacoes(marcacoes, jornadaMinutos = 480) {
+  if (!marcacoes || marcacoes.length === 0) return -jornadaMinutos
+  const trabalhadas = calcularMinutosPorMarcacoes(marcacoes)
+  return trabalhadas - jornadaMinutos
+}
+
+/**
+ * Calcula jornadaMinutos a partir das marcacoes padrão configuradas
+ * Mesma lógica de calcularMinutosPorMarcacoes aplicada à jornada padrão
+ */
+export function calcularJornadaPadraoMinutos(jornadaPadrao) {
+  return calcularMinutosPorMarcacoes(jornadaPadrao)
+}
+
+/**
+ * Calcula previsão de saída baseada nas marcacoes reais + jornada padrão
+ * Encontra a última entrada sem saída correspondente e projeta a saída
+ */
+export function calcularPrevisaoSaidaMarcacoes(marcacoes, jornadaPadrao) {
+  if (!marcacoes || marcacoes.length === 0) return null
+  const jornadaMin = calcularJornadaPadraoMinutos(jornadaPadrao)
+  if (jornadaMin <= 0) return null
+
+  // Calcular minutos já trabalhados nos pares completos
+  let trabalhados = 0
+  let ultimaEntrada = null
+  for (const m of marcacoes) {
+    if (m.tipo === 'entrada') {
+      ultimaEntrada = m.hora
+    } else if (m.tipo === 'saida' && ultimaEntrada) {
+      trabalhados += diffMinutos(ultimaEntrada, m.hora)
+      ultimaEntrada = null
+    }
+  }
+
+  // Se tem uma entrada em aberto, calcular previsão
+  if (!ultimaEntrada) return null
+  const faltam = jornadaMin - trabalhados
+  if (faltam <= 0) return null
+
+  const [h, m] = ultimaEntrada.split(':').map(Number)
+  const totalMin = h * 60 + m + faltam
+  const hSaida = Math.floor(totalMin / 60) % 24
+  const mSaida = totalMin % 60
+  return `${String(hSaida).padStart(2, '0')}:${String(mSaida).padStart(2, '0')}`
+}
+
+/**
+ * Retorna minutos trabalhados até agora (entrada em aberto)
+ * Para uso no timer em tempo real
+ */
+export function calcularMinutosParciais(marcacoes) {
+  if (!marcacoes || marcacoes.length === 0) return 0
+  let trabalhados = 0
+  let ultimaEntrada = null
+  for (const m of marcacoes) {
+    if (m.tipo === 'entrada') {
+      ultimaEntrada = m.hora
+    } else if (m.tipo === 'saida' && ultimaEntrada) {
+      trabalhados += diffMinutos(ultimaEntrada, m.hora)
+      ultimaEntrada = null
+    }
+  }
+  // Se tem entrada em aberto, não soma — o timer faz isso em tempo real
+  return trabalhados
+}
+
+/**
+ * Verifica se o ponto do dia tem entrada em aberto (trabalhando agora)
+ */
+export function estaTrabalhandoAgora(marcacoes) {
+  if (!marcacoes || marcacoes.length === 0) return false
+  let ultimaEntrada = null
+  for (const m of marcacoes) {
+    if (m.tipo === 'entrada') ultimaEntrada = m.hora
+    else if (m.tipo === 'saida') ultimaEntrada = null
+  }
+  return !!ultimaEntrada
+}
+
+/**
+ * Retorna a hora da última entrada em aberto (sem saída correspondente)
+ */
+export function getUltimaEntradaAberta(marcacoes) {
+  if (!marcacoes || marcacoes.length === 0) return null
+  let ultimaEntrada = null
+  for (const m of marcacoes) {
+    if (m.tipo === 'entrada') ultimaEntrada = m.hora
+    else if (m.tipo === 'saida') ultimaEntrada = null
+  }
+  return ultimaEntrada
+}
