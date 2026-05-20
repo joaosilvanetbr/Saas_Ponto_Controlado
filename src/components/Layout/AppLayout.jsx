@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { useOffline } from '../../hooks/useOffline'
 
 const LOGO_SVG = (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="Ponto Fácil">
@@ -16,6 +17,7 @@ export default function AppLayout({ title, children }) {
   const [isDark, setIsDark] = useState(
     typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
+  const isOffline = useOffline()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -38,6 +40,19 @@ export default function AppLayout({ title, children }) {
           </div>
         </div>
       </header>
+      {isOffline && (
+        <div style={{
+          background: 'var(--color-warning)',
+          color: 'white',
+          textAlign: 'center',
+          fontSize: 'var(--text-xs)',
+          fontWeight: 600,
+          padding: '6px var(--space-4)',
+          letterSpacing: '0.03em',
+        }}>
+          📡 Sem conexão — dados salvos localmente
+        </div>
+      )}
       <main style={s.main}>{children}</main>
     </div>
   )

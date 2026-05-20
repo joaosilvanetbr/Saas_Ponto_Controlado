@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { getConfig, saveConfig } from '../utils/calcHoras'
 import { useNotificacoes } from '../hooks/useNotificacoes'
+import { useInstallPWA } from '../hooks/useInstallPWA'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
 import Input from '../components/UI/Input'
@@ -20,6 +21,7 @@ const JORNADAS_PRESET = [
 export default function ConfigPage() {
   const { user, logout } = useAuth()
   const { pedirPermissao } = useNotificacoes()
+  const { podeInstalar, instalar } = useInstallPWA()
   const [jornadaMinutos, setJornadaMinutos] = useState(480)
   const [nome, setNome] = useState('')
   const [msg, setMsg] = useState('')
@@ -244,6 +246,11 @@ export default function ConfigPage() {
 
       <Card style={{ marginBottom: 'var(--space-3)' }}>
         <p style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-faint)', letterSpacing: '1px', marginBottom: 'var(--space-3)', marginTop: 0 }}>APP</p>
+        {podeInstalar && (
+          <Button variant="filled" size="md" fullWidth onClick={instalar} style={{ marginBottom: 'var(--space-3)' }}>
+            📲 Instalar app no celular
+          </Button>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-3) 0' }}>
           <span style={{ fontSize: 'var(--text-base)', color: 'var(--color-text)' }}>Tema</span>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Automático (sistema)</span>

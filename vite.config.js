@@ -7,41 +7,40 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Ponto Fácil - Controle de Horas',
-        short_name: 'Ponto Fácil',
-        description: 'Controle de banco de horas e jornada de trabalho',
-        theme_color: '#4f46e5',
-        background_color: '#f8fafc',
+        name: 'Ponto Fácil',
+        short_name: 'Ponto',
+        description: 'Controle seu banco de horas com facilidade',
+        theme_color: '#1A6B45',
+        background_color: '#F4F4EF',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
         start_url: '/',
-        categories: ['productivity', 'utilities'],
-        lang: 'pt-BR',
+        scope: '/',
         icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: []
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
       },
-      devOptions: {
-        enabled: false
-      }
+      devOptions: { enabled: true },
     })
   ],
 })
