@@ -112,10 +112,17 @@ export default function HomePage() {
   const horasTrabalhadas = pontoHoje ? calcularHorasTrabalhadas(pontoHoje) : 0
   const saldoDia = pontoHoje ? calcularSaldoDia(pontoHoje, config.jornadaMinutos) : -config.jornadaMinutos
 
-  const recentes = pontos
+  const pontosAnteriores = pontos
     .filter((p) => p.data !== hoje)
     .sort((a, b) => b.data.localeCompare(a.data))
     .slice(0, 5)
+
+  const recentes = pontosAnteriores.length > 0
+    ? pontosAnteriores
+    : pontos
+        .filter((p) => p.data === hoje && p.entrada1)
+        .sort((a, b) => b.data.localeCompare(a.data))
+        .slice(0, 5)
 
   const diaProd = diaMaisProdutivo(pontos, config.jornadaMinutos)
   const mediaSaldo = mediaSaldoUltimos30(pontos, config.jornadaMinutos)
