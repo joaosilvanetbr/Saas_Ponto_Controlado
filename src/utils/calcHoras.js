@@ -47,7 +47,7 @@ export function calcularHorasTrabalhadas(ponto) {
   return total
 }
 
-export function calcularSaldoDia(ponto, jornadaMinutos = 480) {
+export function calcularSaldoDia(ponto, jornadaMinutos = 480, intervaloMinutos = 0) {
   if (!ponto) return -jornadaMinutos
   if (ponto.tipo === 'falta') return -jornadaMinutos
   if (ponto.tipo === 'feriado' || ponto.tipo === 'ferias') return 0
@@ -55,7 +55,8 @@ export function calcularSaldoDia(ponto, jornadaMinutos = 480) {
   if (ponto.tipo === 'extra_banco') return ponto.horasExtrasMin || 0
 
   const trabalhadas = calcularHorasTrabalhadas(ponto)
-  return trabalhadas - jornadaMinutos
+  const intervalo = ponto.entrada2 ? 0 : intervaloMinutos
+  return trabalhadas - intervalo - jornadaMinutos
 }
 
 export function diffMinutos(inicio, fim) {

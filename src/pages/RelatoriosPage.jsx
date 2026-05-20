@@ -153,7 +153,7 @@ export default function RelatoriosPage() {
               <DayCard
                 key={ponto.data}
                 ponto={ponto}
-                saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos)}
+                saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)}
                 horasFormatadas={minutosParaHHMM(calcularHorasTrabalhadas(ponto))}
                 formatter={minutosParaTexto}
               />

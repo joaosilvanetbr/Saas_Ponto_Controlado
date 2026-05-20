@@ -54,7 +54,7 @@ export default function HistoricoPage() {
   const pontosComAcumulado = useMemo(() => {
     let acumulado = 0
     return pontosDoMes.map((ponto) => {
-      const saldo = calcularSaldoDia(ponto, config.jornadaMinutos)
+      const saldo = calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)
       acumulado += saldo
       return { ...ponto, saldo, acumulado }
     })

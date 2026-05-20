@@ -110,7 +110,7 @@ export default function HomePage() {
   }, [pontoHoje])
 
   const horasTrabalhadas = pontoHoje ? calcularHorasTrabalhadas(pontoHoje) : 0
-  const saldoDia = pontoHoje ? calcularSaldoDia(pontoHoje, config.jornadaMinutos) : -config.jornadaMinutos
+  const saldoDia = pontoHoje ? calcularSaldoDia(pontoHoje, config.jornadaMinutos, config.intervaloMinutos || 0) : -config.jornadaMinutos
 
   const pontosAnteriores = pontos
     .filter((p) => p.data !== hoje)
@@ -129,6 +129,14 @@ export default function HomePage() {
   const sequencia = sequenciaSemFalta(pontos)
 
   const ehSaida = getTipoBotao(pontoHoje) === 'saida'
+
+  const [ehPrev, emPrev] = pontoHoje?.entrada1 ? pontoHoje.entrada1.split(':').map(Number) : [0, 0]
+  const saidaPrevMin = pontoHoje?.entrada1 ? ehPrev * 60 + emPrev + config.jornadaMinutos + (config.intervaloMinutos || 0) : 0
+  const saidaPrevStr = pontoHoje?.entrada1 && !pontoHoje?.saida1 ? minutosParaHHMM(saidaPrevMin) : null
+
+  const saldoParcial = pontoHoje?.entrada1 && !pontoHoje?.saida1
+    ? minutosTrabalhandoHoje - config.jornadaMinutos
+    : null
 
   return (
     <AppLayout title="Hoje">
@@ -173,12 +181,14 @@ export default function HomePage() {
 
       {/* SALDO DESTAQUE */}
       {(() => {
-        const { jornadaMinutos } = getConfig()
+        const { jornadaMinutos, intervaloMinutos } = getConfig()
         let saldoMin = 0
         if (pontoHoje?.entrada1 && pontoHoje?.saida1) {
           const [eh, em] = pontoHoje.entrada1.split(':').map(Number)
           const [sh, sm] = pontoHoje.saida1.split(':').map(Number)
-          saldoMin = (sh * 60 + sm) - (eh * 60 + em) - jornadaMinutos
+          const totalMin = (sh * 60 + sm) - (eh * 60 + em)
+          const intervalo = pontoHoje?.entrada2 ? 0 : (intervaloMinutos || 0)
+          saldoMin = totalMin - intervalo - jornadaMinutos
         }
         if (pontoHoje?.entrada2 && pontoHoje?.saida2) {
           const [eh2, em2] = pontoHoje.entrada2.split(':').map(Number)
@@ -195,23 +205,59 @@ export default function HomePage() {
             padding: 'var(--space-5) var(--space-4) var(--space-3)',
           }}>
             {pontoHoje?.entrada1 && !pontoHoje?.saida1 && (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                background: 'var(--color-surface-tonal)',
-                borderRadius: 'var(--radius-pill)',
-                padding: 'var(--space-1) var(--space-3)',
-                marginBottom: 'var(--space-3)',
-              }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: 'var(--color-accent)',
-                  animation: 'pulse 1.5s ease-in-out infinite',
-                  display: 'inline-block',
-                }} />
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                  trabalhando há {minutosParaTexto(minutosTrabalhandoHoje)}
-                </span>
-              </div>
+              <>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
+                  background: 'var(--color-surface-tonal)',
+                  borderRadius: 'var(--radius-pill)',
+                  padding: 'var(--space-1) var(--space-3)',
+                  marginBottom: 'var(--space-2)',
+                }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: 'var(--color-accent)',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    display: 'inline-block',
+                  }} />
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                    trabalhando há {minutosParaTexto(minutosTrabalhandoHoje)}
+                  </span>
+                </div>
+
+                {saidaPrevStr && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
+                    marginBottom: 'var(--space-3)',
+                  }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+                      🏁 Previsão de saída: {saidaPrevStr}
+                    </span>
+                  </div>
+                )}
+
+                {saldoParcial !== null && (
+                  <div style={{
+                    background: saldoParcial >= 0 ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
+                    borderRadius: 'var(--radius-xl)',
+                    padding: 'var(--space-4) var(--space-6)',
+                    display: 'inline-block',
+                    marginBottom: 'var(--space-3)',
+                  }}>
+                    <p style={{ fontSize: 'var(--text-xs)', color: saldoParcial >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                      saldo parcial
+                    </p>
+                    <p style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: saldoParcial >= 0 ? 'var(--color-success)' : 'var(--color-danger)', margin: 0, lineHeight: 1.1 }}>
+                      {saldoParcial >= 0 ? '+' : ''}{minutosParaTexto(Math.abs(saldoParcial))}
+                    </p>
+                    {!pontoHoje?.entrada2 && (config.intervaloMinutos || 0) > 0 && (
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 'var(--space-2) 0 0' }}>
+                        (intervalo não descontado)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {pontoHoje?.entrada1 && pontoHoje?.saida1 && (
@@ -270,7 +316,7 @@ export default function HomePage() {
             <DayCard
               key={ponto.data}
               ponto={ponto}
-              saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos)}
+              saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)}
               horasFormatadas={minutosParaHHMM(calcularHorasTrabalhadas(ponto))}
               formatter={minutosParaTexto}
             />
