@@ -3,24 +3,24 @@
 ======================== */
 :root {
   /* ACCENT */
-  --color-accent:              #0A7EA4;
-  --color-accent-hover:        #086887;
-  --color-accent-tonal:        #D5EEF6;
+  --color-accent:              #1A6B45;
+  --color-accent-hover:        #155838;
+  --color-accent-tonal:        #D4EDE1;
   --color-accent-on:           #FFFFFF;
 
   /* SUPERFÍCIES */
-  --color-bg:                  #F2F2F7;
-  --color-surface:             #FFFFFF;
-  --color-surface-2:           #F9F9F9;
-  --color-surface-tonal:       #E8F4F8;
-  --color-divider:             rgba(60, 60, 67, 0.12);
-  --color-border:              rgba(60, 60, 67, 0.18);
+  --color-bg:                  #F4F4EF;
+  --color-surface:             #FAFAF7;
+  --color-surface-2:           #F0F0EA;
+  --color-surface-tonal:       #DFF0E8;
+  --color-divider:             rgba(60, 60, 55, 0.12);
+  --color-border:              rgba(60, 60, 55, 0.18);
 
   /* TEXTO */
   --color-text:                #1C1C1E;
   --color-text-secondary:      #3C3C43;
-  --color-text-muted:          rgba(60, 60, 67, 0.60);
-  --color-text-faint:          rgba(60, 60, 67, 0.30);
+  --color-text-muted:          rgba(60, 60, 55, 0.60);
+  --color-text-faint:          rgba(60, 60, 55, 0.30);
   --color-text-inverse:        #FFFFFF;
 
   /* SEMÂNTICOS */
@@ -32,9 +32,9 @@
   --color-warning-bg:          #FFF5E6;
 
   /* TAB BAR */
-  --color-tab-bg:              rgba(255, 255, 255, 0.85);
-  --color-tab-active:          #0A7EA4;
-  --color-tab-inactive:        rgba(60, 60, 67, 0.35);
+  --color-tab-bg:              rgba(250, 250, 247, 0.88);
+  --color-tab-active:          #1A6B45;
+  --color-tab-inactive:        rgba(60, 60, 55, 0.35);
 
   /* TIPOGRAFIA */
   --font-native:
@@ -94,15 +94,15 @@
 ======================== */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-accent:          #3FBDD6;
-    --color-accent-hover:    #2EA8BF;
-    --color-accent-tonal:    rgba(63, 189, 214, 0.18);
+    --color-accent:          #4ABA7E;
+    --color-accent-hover:    #3A9E69;
+    --color-accent-tonal:    rgba(74, 186, 126, 0.15);
     --color-accent-on:       #000000;
 
-    --color-bg:              #000000;
-    --color-surface:         #1C1C1E;
-    --color-surface-2:       #2C2C2E;
-    --color-surface-tonal:   #0D2B35;
+    --color-bg:              #0E0F0D;
+    --color-surface:         #1A1C19;
+    --color-surface-2:       #252821;
+    --color-surface-tonal:   #1A2E22;
     --color-divider:         rgba(255,255,255,0.10);
     --color-border:          rgba(255,255,255,0.16);
 
@@ -119,8 +119,8 @@
     --color-warning:         #FF9F0A;
     --color-warning-bg:      rgba(255,159,10,0.15);
 
-    --color-tab-bg:          rgba(28,28,30,0.90);
-    --color-tab-active:      #3FBDD6;
+    --color-tab-bg:          rgba(26, 28, 25, 0.92);
+    --color-tab-active:      #4ABA7E;
     --color-tab-inactive:    rgba(235,235,245,0.35);
 
     --shadow-card:           0 1px 4px rgba(0,0,0,0.35);

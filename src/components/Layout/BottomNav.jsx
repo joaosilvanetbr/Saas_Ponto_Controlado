@@ -14,11 +14,6 @@ const ICONS = {
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   ),
-  mais: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  ),
   grafico: (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
@@ -36,7 +31,6 @@ const ICONS = {
 const TABS = [
   { to: '/', label: 'Início', icon: 'casa' },
   { to: '/historico', label: 'Histórico', icon: 'calendario' },
-  { to: '/lancamento', label: 'Lançar', icon: 'mais' },
   { to: '/relatorios', label: 'Relatórios', icon: 'grafico' },
   { to: '/config', label: 'Config', icon: 'engrenagem' },
 ]
@@ -47,6 +41,7 @@ export default function BottomNav() {
   const [isDark, setIsDark] = useState(
     typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
+  const [fabPressed, setFabPressed] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -60,8 +55,53 @@ export default function BottomNav() {
 
   return (
     <nav style={styles(isDark).nav}>
-      {TABS.map((tab, i) => {
+      {TABS.slice(0, 2).map((tab, i) => {
         const isActive = i === activeIndex
+        return (
+          <button
+            key={tab.to}
+            onClick={() => navigate(tab.to)}
+            style={styles(isDark).tab}
+          >
+            {isActive && <span style={styles(isDark).pill} />}
+            <span style={{ color: isActive ? 'var(--color-tab-active)' : 'var(--color-tab-inactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2px' }}>
+              {ICONS[tab.icon]}
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: isActive ? 600 : 500,
+              color: isActive ? 'var(--color-tab-active)' : 'var(--color-tab-inactive)',
+            }}>
+              {tab.label}
+            </span>
+          </button>
+        )
+      })}
+
+      <div style={styles(isDark).fabWrapper}>
+        <button
+          onClick={() => navigate('/lancamento')}
+          onPointerDown={() => setFabPressed(true)}
+          onPointerUp={() => setFabPressed(false)}
+          onPointerLeave={() => setFabPressed(false)}
+          style={{
+            ...styles(isDark).fab,
+            ...(fabPressed ? {
+              transform: 'translateY(-12px) scale(0.93)',
+              boxShadow: '0 2px 8px rgba(26, 107, 69, 0.30)',
+            } : {}),
+          }}
+          aria-label="Registrar ponto"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+
+      {TABS.slice(2).map((tab, i) => {
+        const realIndex = i + 2
+        const isActive = realIndex === activeIndex
         return (
           <button
             key={tab.to}
@@ -95,7 +135,7 @@ function styles(isDark) {
       right: 0,
       zIndex: 200,
       display: 'flex',
-      background: isDark ? 'rgba(28, 28, 30, 0.90)' : 'rgba(255, 255, 255, 0.85)',
+      background: 'var(--color-tab-bg)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
       borderTop: '1px solid var(--color-divider)',
@@ -123,6 +163,29 @@ function styles(isDark) {
       height: '32px',
       borderRadius: 'var(--radius-pill)',
       background: 'var(--color-accent-tonal)',
+    },
+    fabWrapper: {
+      flex: 1,
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      paddingTop: 0,
+      position: 'relative',
+    },
+    fab: {
+      width: 56,
+      height: 56,
+      borderRadius: 'var(--radius-pill)',
+      background: 'var(--color-accent)',
+      border: 'none',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 16px rgba(26, 107, 69, 0.45)',
+      transform: 'translateY(-12px)',
+      WebkitTapHighlightColor: 'transparent',
+      transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms ease',
     },
   }
 }

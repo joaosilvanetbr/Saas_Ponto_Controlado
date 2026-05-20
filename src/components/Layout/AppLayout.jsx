@@ -1,5 +1,17 @@
 import { useState, useCallback, useEffect } from 'react'
 
+const LOGO_SVG = (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="Ponto Fácil">
+    <circle cx="16" cy="16" r="16" fill="var(--color-accent)"/>
+    <circle cx="16" cy="16" r="6" stroke="white" strokeWidth="1.5" fill="none"/>
+    <path d="M16 13v3l2 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="16" cy="7" r="1" fill="white" opacity="0.5"/>
+    <circle cx="16" cy="25" r="1" fill="white" opacity="0.5"/>
+    <circle cx="7" cy="16" r="1" fill="white" opacity="0.5"/>
+    <circle cx="25" cy="16" r="1" fill="white" opacity="0.5"/>
+  </svg>
+)
+
 export default function AppLayout({ title, children }) {
   const [isDark, setIsDark] = useState(
     typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -18,7 +30,13 @@ export default function AppLayout({ title, children }) {
   return (
     <div style={s.layout}>
       <header style={s.header}>
-        <h1 style={s.title}>{title}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {LOGO_SVG}
+          <div>
+            <p style={s.appName}>Ponto Fácil</p>
+            <h1 style={s.pageTitle}>{title}</h1>
+          </div>
+        </div>
       </header>
       <main style={s.main}>{children}</main>
     </div>
@@ -37,26 +55,37 @@ function styles(isDark) {
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      paddingTop: 'calc(var(--safe-top) + 12px)',
-      paddingBottom: '12px',
-      paddingLeft: '16px',
-      paddingRight: '16px',
-      background: isDark ? 'rgba(0, 0, 0, 0.85)' : 'rgba(242, 242, 247, 0.85)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
+      paddingTop: 'calc(var(--safe-top) + 10px)',
+      paddingBottom: '10px',
+      paddingLeft: 'var(--space-4)',
+      paddingRight: 'var(--space-4)',
+      background: isDark
+        ? 'rgba(14, 15, 13, 0.88)'
+        : 'rgba(244, 244, 239, 0.88)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--color-divider)',
     },
-    title: {
-      fontSize: 'var(--text-2xl)',
-      fontWeight: 700,
-      letterSpacing: '-0.5px',
-      color: 'var(--color-text)',
+    appName: {
+      fontSize: 'var(--text-xs)',
+      fontWeight: 600,
+      color: 'var(--color-accent)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
       margin: 0,
     },
+    pageTitle: {
+      fontSize: 'var(--text-xl)',
+      fontWeight: 700,
+      letterSpacing: '-0.4px',
+      color: 'var(--color-text)',
+      margin: 0,
+      lineHeight: 1.15,
+    },
     main: {
-      paddingLeft: '16px',
-      paddingRight: '16px',
-      paddingTop: '16px',
+      paddingLeft: 'var(--space-4)',
+      paddingRight: 'var(--space-4)',
+      paddingTop: 'var(--space-4)',
       maxWidth: '480px',
       margin: '0 auto',
     },
