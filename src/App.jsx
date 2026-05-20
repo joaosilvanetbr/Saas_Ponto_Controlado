@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import { useNotificacoes } from './hooks/useNotificacoes'
+import { getConfig } from './utils/calcHoras'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
 import HistoricoPage from './pages/HistoricoPage'
@@ -13,12 +14,20 @@ import BottomNav from './components/Layout/BottomNav'
 
 function NotificacoesInit() {
   const { user } = useAuth()
-  const { verificarLembrete } = useNotificacoes(user?.id)
+  const { verificarLembrete } = useNotificacoes()
+  const [lembretes, setLembretes] = useState(null)
 
   useEffect(() => {
-    const interval = setInterval(verificarLembrete, 60 * 1000)
+    if (!user) return
+    getConfig(user.id).then(cfg => {
+      if (cfg?.lembretes) setLembretes(cfg.lembretes)
+    }).catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    const interval = setInterval(() => verificarLembrete(lembretes), 60 * 1000)
     return () => clearInterval(interval)
-  }, [verificarLembrete])
+  }, [verificarLembrete, lembretes])
 
   return null
 }

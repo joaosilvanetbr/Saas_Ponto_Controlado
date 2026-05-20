@@ -45,7 +45,7 @@ async function getConfigSupabase(userId) {
 async function saveConfigSupabase(config, userId) {
   if (!supabase || !userId) return
 
-  await supabase
+  const { error } = await supabase
     .from('config_usuarios')
     .upsert({
       user_id:             userId,
@@ -61,6 +61,8 @@ async function saveConfigSupabase(config, userId) {
       lembrete_saida:      config.lembretes?.saida ?? '17:48',
       updated_at:          new Date().toISOString(),
     }, { onConflict: 'user_id' })
+
+  if (error) throw new Error(error.message)
 }
 
 export { getConfigSupabase as getConfig, saveConfigSupabase as saveConfig }
@@ -250,4 +252,11 @@ export function getUltimaEntradaAberta(marcacoes) {
     else if (m.tipo === 'saida') ultimaEntrada = null
   }
   return ultimaEntrada
+}
+
+export function getJornadaFinal(cfg) {
+  const jornadaCalc = cfg.jornadaPadrao?.length
+    ? calcularJornadaPadraoMinutos(cfg.jornadaPadrao)
+    : 0
+  return jornadaCalc > 0 ? jornadaCalc : cfg.jornadaMinutos
 }

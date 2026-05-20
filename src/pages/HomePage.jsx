@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
@@ -6,15 +6,12 @@ import { useBancoHoras } from '../hooks/useBancoHoras'
 import { useTimer } from '../hooks/useTimer'
 import {
   calcularMinutosPorMarcacoes,
-  calcularSaldoDiaMarcacoes,
-  calcularJornadaPadraoMinutos,
   estaTrabalhandoAgora,
   getUltimaEntradaAberta,
   minutosParaHHMM,
   minutosParaTexto,
   getConfig,
-  calcularHorasTrabalhadas,
-  calcularSaldoDia,
+  getJornadaFinal,
 } from '../utils/calcHoras'
 import AppLayout from '../components/Layout/AppLayout'
 import LinhaDoTempo from '../components/Ponto/LinhaDoTempo'
@@ -67,7 +64,7 @@ function RelogioAgora() {
 export default function HomePage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { pontos, getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
+  const { getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
   const hoje = dataHoje()
   const [dataSelecionada, setDataSelecionada] = useState(hoje)
   const ehHoje = dataSelecionada === hoje
@@ -92,17 +89,17 @@ export default function HomePage() {
       .catch(err => console.error('Erro ao carregar config:', err))
   }, [user])
 
-  const jornadaMin = calcularJornadaPadraoMinutos(config.jornadaPadrao)
+  const jornadaMin = getJornadaFinal(config)
   const agora = new Date()
   const pontosDoMes = getPontosDoMes(agora.getFullYear(), agora.getMonth())
   const { saldoMes } = useBancoHoras(pontosDoMes, config)
 
   const entradaAberta = ehHoje ? getUltimaEntradaAberta(marcacoes) : null
-  const minutosTimer = useTimer(entradaAberta)
+  const minutosTimer = useTimer(ehHoje ? dataSelecionada : null, entradaAberta)
   const trabalhando = ehHoje && estaTrabalhandoAgora(marcacoes)
 
   const minutosHoje = calcularMinutosPorMarcacoes(marcacoes) + (trabalhando ? minutosTimer : 0)
-  const saldoDia = calcularSaldoDiaMarcacoes(marcacoes, jornadaMin)
+  const saldoDia = minutosHoje - jornadaMin
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetHora, setSheetHora] = useState('')
@@ -120,9 +117,29 @@ export default function HomePage() {
 
   async function confirmarPonto() {
     if (!sheetHora) return
+
+    const tipo = proximoTipo()
+    const novas = [...marcacoes, { tipo, hora: sheetHora }]
+
+    if (tipo === 'saida' && marcacoes.length > 0) {
+      const ultimaEntrada = [...marcacoes].reverse().find(m => m.tipo === 'entrada')
+      if (ultimaEntrada && sheetHora < ultimaEntrada.hora) {
+        setMsg('❌ Saída não pode ser antes da entrada.')
+        setTimeout(() => setMsg(''), 3000)
+        return
+      }
+    }
+
+    if (marcacoes.length > 0) {
+      const ultimaMarcacao = marcacoes[marcacoes.length - 1]
+      if (sheetHora < ultimaMarcacao.hora) {
+        setMsg('❌ Horário não pode ser anterior à última marcação.')
+        setTimeout(() => setMsg(''), 3000)
+        return
+      }
+    }
+
     try {
-      const tipo = proximoTipo()
-      const novas = [...marcacoes, { tipo, hora: sheetHora }]
       await salvarPonto({
         ...(pontoAtual || {}),
         data: dataSelecionada,
@@ -133,7 +150,7 @@ export default function HomePage() {
       const label = tipo === 'entrada' ? '✅ Entrada' : '✅ Saída'
       setMsg(`${label} registrada às ${sheetHora}`)
       setTimeout(() => setMsg(''), 3000)
-    } catch (err) {
+    } catch {
       setMsg('❌ Erro ao registrar ponto. Tente novamente.')
       setTimeout(() => setMsg(''), 3000)
     }
@@ -143,7 +160,7 @@ export default function HomePage() {
     try {
       const novas = marcacoes.map((m, i) => i === index ? { ...m, hora: novaHora } : m)
       await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
-    } catch (err) {
+    } catch {
       setMsg('❌ Erro ao atualizar marcação. Tente novamente.')
       setTimeout(() => setMsg(''), 3000)
     }
@@ -153,7 +170,7 @@ export default function HomePage() {
     try {
       const novas = marcacoes.filter((_, i) => i !== index)
       await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
-    } catch (err) {
+    } catch {
       setMsg('❌ Erro ao remover marcação. Tente novamente.')
       setTimeout(() => setMsg(''), 3000)
     }
@@ -296,7 +313,7 @@ export default function HomePage() {
       <div style={{ marginBottom: 'var(--space-5)' }}>
         <BarraProgressoJornada
           minutosFeitos={minutosHoje}
-          jornadaMinutos={jornadaMin || config.jornadaMinutos}
+          jornadaMinutos={jornadaMin}
         />
       </div>
 

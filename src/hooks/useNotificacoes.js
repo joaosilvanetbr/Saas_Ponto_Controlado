@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 
-export function useNotificacoes(userId = null) {
+export function useNotificacoes() {
 
   const pedirPermissao = useCallback(async () => {
     if (!('Notification' in window)) return 'unsupported'
@@ -18,15 +18,8 @@ export function useNotificacoes(userId = null) {
     })
   }, [])
 
-  const verificarLembrete = useCallback((lembretesOverride) => {
-    let lembretes = lembretesOverride
-    if (!lembretes) {
-      try {
-        const raw = localStorage.getItem(`ponto_facil_lembretes_${userId}`)
-        if (raw) lembretes = JSON.parse(raw)
-      } catch { /* ignore parse error */ }
-    }
-    if (!lembretes?.ativo) return
+  const verificarLembrete = useCallback((lembretes) => {
+    if (!lembretes || !lembretes.ativo) return
 
     const agora = new Date()
     const horaAtual = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`
@@ -37,7 +30,7 @@ export function useNotificacoes(userId = null) {
     if (lembretes.saida && horaAtual === lembretes.saida) {
       enviarNotificacao('⏱ Hora de registrar saída!', 'Não esqueça de bater o ponto de saída.')
     }
-  }, [enviarNotificacao, userId])
+  }, [enviarNotificacao])
 
   return { pedirPermissao, enviarNotificacao, verificarLembrete }
 }

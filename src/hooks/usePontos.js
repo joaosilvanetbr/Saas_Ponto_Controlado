@@ -17,6 +17,12 @@ function mapRow(row) {
   }
 }
 
+function getUltimosMeses(n) {
+  const agora = new Date()
+  const inicio = new Date(agora.getFullYear(), agora.getMonth() - n + 1, 1)
+  return `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, '0')}-01`
+}
+
 export function usePontos() {
   const { user } = useAuth()
   const [pontos, setPontos] = useState([])
@@ -25,15 +31,38 @@ export function usePontos() {
   useEffect(() => {
     if (!user) return
     setLoading(true)
+    const dataInicio = getUltimosMeses(6)
     supabase
       .from('pontos')
       .select('*')
       .eq('user_id', user.id)
+      .gte('data', dataInicio)
       .order('data', { ascending: false })
       .then(({ data, error }) => {
         if (!error && data) setPontos(data.map(mapRow))
       })
       .finally(() => setLoading(false))
+  }, [user])
+
+  const carregarPeriodo = useCallback(async (dataInicio, dataFim) => {
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('pontos')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('data', dataInicio)
+      .lte('data', dataFim)
+      .order('data', { ascending: false })
+
+    if (error || !data) return []
+
+    const novos = data.map(mapRow)
+    setPontos(prev => {
+      const existentes = new Set(prev.map(p => p.data))
+      const adicionais = novos.filter(p => !existentes.has(p.data))
+      return [...prev, ...adicionais]
+    })
+    return novos
   }, [user])
 
   const getPontoDoDia = useCallback((data) => {
@@ -93,13 +122,18 @@ export function usePontos() {
     setPontos(prev => prev.filter((p) => p.data !== data))
   }, [user])
 
-  const baterPonto = useCallback(async (tipo) => {
+  const baterPonto = useCallback(async () => {
     if (!user) return
     const hoje = new Date().toISOString().slice(0, 10)
     const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     const pontoDoDia = getPontoDoDia(hoje)
     const marcacoesAtuais = pontoDoDia?.marcacoes || []
-    const novasMarcacoes = [...marcacoesAtuais, { tipo, hora }]
+
+    const proximoTipo = marcacoesAtuais.length === 0
+      ? 'entrada'
+      : marcacoesAtuais[marcacoesAtuais.length - 1].tipo === 'entrada' ? 'saida' : 'entrada'
+
+    const novasMarcacoes = [...marcacoesAtuais, { tipo: proximoTipo, hora }]
 
     await salvarPonto({
       data: hoje,
@@ -112,5 +146,5 @@ export function usePontos() {
     })
   }, [user, getPontoDoDia, salvarPonto])
 
-  return { pontos, loading, getPontoDoDia, getPontosDoMes, salvarPonto, baterPonto, deletarPonto }
+  return { pontos, loading, getPontoDoDia, getPontosDoMes, carregarPeriodo, salvarPonto, baterPonto, deletarPonto }
 }

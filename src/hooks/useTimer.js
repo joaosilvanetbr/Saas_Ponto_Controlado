@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 
-export function useTimer(entradaStr) {
+export function useTimer(data, entradaStr) {
   const [minutos, setMinutos] = useState(0)
 
   useEffect(() => {
-    if (!entradaStr) {
+    if (!data || !entradaStr) {
       setMinutos(0)
       return
     }
@@ -12,8 +12,7 @@ export function useTimer(entradaStr) {
     const calcular = () => {
       const agora = new Date()
       const [h, m] = entradaStr.split(':').map(Number)
-      const entrada = new Date()
-      entrada.setHours(h, m, 0, 0)
+      const entrada = new Date(`${data}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`)
       const diff = Math.floor((agora - entrada) / 60000)
       setMinutos(diff > 0 ? diff : 0)
     }
@@ -21,7 +20,7 @@ export function useTimer(entradaStr) {
     calcular()
     const interval = setInterval(calcular, 30000)
     return () => clearInterval(interval)
-  }, [entradaStr])
+  }, [data, entradaStr])
 
   return minutos
 }

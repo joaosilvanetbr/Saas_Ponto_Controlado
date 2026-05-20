@@ -6,18 +6,20 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { calcularSaldoDia, calcularSaldoDiaMarcacoes } from '../../utils/calcHoras'
+import { calcularSaldoDia, calcularSaldoDiaMarcacoes, getJornadaFinal } from '../../utils/calcHoras'
 import { formatarMinutos } from '../../utils/reportCalculations'
 
-export default function SaldoChart({ registros, jornadaMinutos, intervaloMinutos = 0 }) {
+export default function SaldoChart({ registros, config }) {
   if (!registros || registros.length === 0) return null
+
+  const jornadaFinal = getJornadaFinal(config)
 
   const pontos = registros
     .sort((a, b) => a.data.localeCompare(b.data))
     .reduce((acc, ponto, i) => {
       const saldoDia = ponto.marcacoes && ponto.marcacoes.length > 0
-        ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaMinutos)
-        : calcularSaldoDia(ponto, jornadaMinutos, intervaloMinutos)
+        ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
+        : calcularSaldoDia(ponto, jornadaFinal, config.intervaloMinutos || 0)
       const acumulado = (acc[i - 1]?.acumulado ?? 0) + saldoDia
       const label = ponto.data.slice(8)
       acc.push({ label, acumulado, saldoDia })

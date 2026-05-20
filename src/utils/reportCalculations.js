@@ -1,4 +1,4 @@
-import { diffMinutos, calcularSaldoDia as calcularSaldoDiaBase, calcularMinutosPorMarcacoes, calcularSaldoDiaMarcacoes } from './calcHoras'
+import { diffMinutos, calcularSaldoDia as calcularSaldoDiaBase, calcularMinutosPorMarcacoes, calcularSaldoDiaMarcacoes, getJornadaFinal } from './calcHoras'
 
 export { calcularSaldoDiaBase as calcularSaldoDia }
 export { calcularSaldoDiaMarcacoes }
@@ -9,7 +9,7 @@ export function calcularMinutosTrabalhados(ponto) {
   if (ponto.tipo === 'extra_pago') return 0
 
   if (ponto.marcacoes && ponto.marcacoes.length > 0) {
-    return calcularMinutosPorMarcacoes(ponto.marcacoes)
+    return calcularMinutosPorMarcacoes(ponto.marcacoes) + (ponto.horasExtrasMin || 0)
   }
 
   let total = 0
@@ -19,6 +19,10 @@ export function calcularMinutosTrabalhados(ponto) {
   }
   if (ponto.entrada2 && ponto.saida2) {
     total += diffMinutos(ponto.entrada2, ponto.saida2)
+  }
+
+  if (ponto.horasExtrasMin) {
+    total += ponto.horasExtrasMin
   }
 
   return total
@@ -34,7 +38,8 @@ export function formatarMinutos(minutos) {
   return `${sinal}${h}h${String(m).padStart(2, '0')}min`
 }
 
-export function gerarResumo(registros, jornadaMinutos = 480, intervaloMinutos = 0) {
+export function gerarResumo(registros, config) {
+  const jornadaFinal = getJornadaFinal(config)
   let totalTrabalhadas = 0
   let saldoPeriodo = 0
   let extrasBanco = 0
@@ -44,8 +49,8 @@ export function gerarResumo(registros, jornadaMinutos = 480, intervaloMinutos = 
   for (const ponto of registros) {
     const trabalhadas = calcularMinutosTrabalhados(ponto)
     const saldo = ponto.marcacoes && ponto.marcacoes.length > 0
-      ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaMinutos)
-      : calcularSaldoDiaBase(ponto, jornadaMinutos, intervaloMinutos)
+      ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
+      : calcularSaldoDiaBase(ponto, jornadaFinal, config.intervaloMinutos || 0)
 
     totalTrabalhadas += trabalhadas
     saldoPeriodo += saldo
@@ -56,7 +61,7 @@ export function gerarResumo(registros, jornadaMinutos = 480, intervaloMinutos = 
     if (ponto.tipo === 'falta') {
       totalFaltas += 1
     }
-    if (trabalhadas > 0 || ponto.tipo === 'registro') {
+    if (trabalhadas > 0) {
       diasTrabalhados += 1
     }
   }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useRelatorios } from '../hooks/useRelatorios'
-import { getConfig, calcularSaldoDiaMarcacoes, calcularJornadaPadraoMinutos, calcularSaldoDia, calcularHorasTrabalhadas, calcularMinutosPorMarcacoes, minutosParaHHMM, minutosParaTexto } from '../utils/calcHoras'
+import { getConfig, calcularSaldoDiaMarcacoes, calcularSaldoDia, calcularHorasTrabalhadas, calcularMinutosPorMarcacoes, minutosParaHHMM, minutosParaTexto, getJornadaFinal } from '../utils/calcHoras'
 import { formatarMinutos } from '../utils/reportCalculations'
 import { downloadCsv } from '../utils/exportCsv'
 import AppLayout from '../components/Layout/AppLayout'
@@ -76,34 +76,31 @@ export default function RelatoriosPage() {
     }).catch(err => console.error('Erro ao carregar config:', err))
   }, [user?.id])
 
-  function getJornadaFinal(cfg) {
-    const jornadaCalc = cfg.jornadaPadrao?.length
-      ? calcularJornadaPadraoMinutos(cfg.jornadaPadrao)
-      : 0
-    return jornadaCalc > 0 ? jornadaCalc : cfg.jornadaMinutos
-  }
+  const jornadaFinal = getJornadaFinal(config)
 
   function calcularSaldoPonto(ponto, cfg) {
-    const jornadaFinal = getJornadaFinal(cfg)
+    const jFinal = getJornadaFinal(cfg)
     if (ponto.marcacoes && ponto.marcacoes.length > 0) {
-      return calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
+      return calcularSaldoDiaMarcacoes(ponto.marcacoes, jFinal)
     }
-    return calcularSaldoDia(ponto, cfg.jornadaMinutos, cfg.intervaloMinutos || 0)
+    return calcularSaldoDia(ponto, jFinal, cfg.intervaloMinutos || 0)
   }
 
   // Efeito 2 — Carrega relatório quando datas ou config mudam
   useEffect(() => {
-    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
-  }, [dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos, pontos, carregarRelatorio])
+    const configRelatorio = { ...config, jornadaMinutos: jornadaFinal }
+    carregarRelatorio(dataInicio, dataFim, configRelatorio)
+  }, [dataInicio, dataFim, jornadaFinal, config, pontos, carregarRelatorio])
 
   function handleAtualizar() {
     if (!dataInicio || !dataFim || dataInicio > dataFim) return
-    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
+    const configRelatorio = { ...config, jornadaMinutos: jornadaFinal }
+    carregarRelatorio(dataInicio, dataFim, configRelatorio)
   }
 
   function handleExportar() {
     if (!dados || !dados.registros.length) return
-    downloadCsv(dados.registros, dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
+    downloadCsv(dados.registros, dataInicio, dataFim, jornadaFinal, config.intervaloMinutos)
   }
 
   return (
@@ -169,8 +166,7 @@ export default function RelatoriosPage() {
           <div style={{ marginBottom: 'var(--space-5)' }}>
             <SaldoChart
               registros={dados.registros}
-              jornadaMinutos={config.jornadaMinutos}
-              intervaloMinutos={config.intervaloMinutos}
+              config={config}
             />
           </div>
 

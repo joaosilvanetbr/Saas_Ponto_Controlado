@@ -28,7 +28,7 @@ const JORNADA_DEFAULT = [
 
 export default function ConfigPage() {
   const { user, logout } = useAuth()
-  const { pedirPermissao } = useNotificacoes(user?.id)
+  const { pedirPermissao } = useNotificacoes()
   const { podeInstalar, instalar } = useInstallPWA()
   const [nome, setNome] = useState('')
   const [empresaNome, setEmpresaNome] = useState('')
@@ -77,17 +77,22 @@ export default function ConfigPage() {
     }
 
     setLoading(true)
-    const novaConfig = {
-      jornadaMinutos: jornMin,
-      jornadaPadrao,
-      nome,
-      empresaNome,
-      diasTrabalho,
-      lembretes,
+    try {
+      const novaConfig = {
+        jornadaMinutos: jornMin,
+        jornadaPadrao,
+        nome,
+        empresaNome,
+        diasTrabalho,
+        lembretes,
+      }
+      await saveConfig(novaConfig, user?.id)
+      setMsg('Configurações salvas!')
+    } catch (err) {
+      setMsg('Erro ao salvar: ' + err.message)
+    } finally {
+      setLoading(false)
     }
-    await saveConfig(novaConfig, user?.id)
-    setLoading(false)
-    setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)
   }
 
@@ -106,7 +111,7 @@ export default function ConfigPage() {
           left: '16px',
           right: '16px',
           zIndex: 1000,
-          background: 'var(--color-success)',
+          background: msg.startsWith('Erro') ? 'var(--color-danger)' : 'var(--color-success)',
           color: 'white',
           padding: 'var(--space-3) var(--space-4)',
           borderRadius: 'var(--radius-md)',
@@ -114,7 +119,7 @@ export default function ConfigPage() {
           fontSize: 'var(--text-sm)',
           fontWeight: 600,
         }}>
-          ✅ {msg}
+          {msg}
         </div>
       )}
 

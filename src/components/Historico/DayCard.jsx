@@ -32,7 +32,21 @@ export default function DayCard({ ponto, saldoMinutos, horasFormatadas, formatte
         <SaldoBadge minutos={saldoMinutos} formatter={formatter} />
       </div>
 
-      {ponto.entrada1 && (
+      {ponto.marcacoes && ponto.marcacoes.length > 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          {ponto.marcacoes.map((m, i) => (
+            <span key={i} style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+              {m.hora}{m.tipo === 'entrada' ? ' E' : ' S'}
+              {i < ponto.marcacoes.length - 1 && <span style={{ color: 'var(--color-text-faint)' }}> · </span>}
+            </span>
+          ))}
+          {horasFormatadas && (
+            <span style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: 'var(--text-sm)', marginLeft: 'auto' }}>
+              {horasFormatadas}
+            </span>
+          )}
+        </div>
+      ) : ponto.entrada1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
             {ponto.entrada1}

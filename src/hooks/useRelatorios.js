@@ -12,18 +12,13 @@ export function useRelatorios(pontos = []) {
       .sort((a, b) => b.data.localeCompare(a.data))
   }, [pontos])
 
-  const getResumoPeriodo = useCallback((dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) => {
-    const registros = getRegistrosPorPeriodo(dataInicio, dataFim)
-    return gerarResumo(registros, jornadaMinutos, intervaloMinutos)
-  }, [getRegistrosPorPeriodo])
-
-  const carregarRelatorio = useCallback((dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) => {
+  const carregarRelatorio = useCallback((dataInicio, dataFim, config) => {
     setLoading(true)
     setError('')
 
     try {
       const registros = getRegistrosPorPeriodo(dataInicio, dataFim)
-      const resumo = gerarResumo(registros, jornadaMinutos, intervaloMinutos)
+      const resumo = gerarResumo(registros, config)
       setDados({ registros, resumo })
     } catch (err) {
       setError(err.message || 'Erro ao carregar relatório')
@@ -38,7 +33,6 @@ export function useRelatorios(pontos = []) {
     error,
     dados,
     getRegistrosPorPeriodo,
-    getResumoPeriodo,
     carregarRelatorio,
   }
 }

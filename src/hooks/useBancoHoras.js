@@ -24,7 +24,7 @@ export function useBancoHoras(pontosDoMes, config = { jornadaMinutos: 480, inter
   }, [pontosDoMes, config.jornadaMinutos, config.intervaloMinutos, config.jornadaPadrao])
 
   const diasComRegistro = useMemo(() => {
-    return pontosDoMes.length
+    return pontosDoMes.filter(p => p.tipo === 'registro').length
   }, [pontosDoMes])
 
   return { saldoMes, diasComRegistro, jornadaMinutos: config.jornadaMinutos }
