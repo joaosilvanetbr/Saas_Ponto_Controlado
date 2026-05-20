@@ -1,4 +1,4 @@
-import { calcularSaldoDia, calcularHorasTrabalhadas } from './calcHoras'
+import { calcularSaldoDia, calcularHorasTrabalhadas, calcularSaldoDiaMarcacoes, calcularMinutosPorMarcacoes } from './calcHoras'
 
 export function diaMaisProdutivo(pontos, jornadaMinutos, intervaloMinutos = 0) {
   const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -9,7 +9,9 @@ export function diaMaisProdutivo(pontos, jornadaMinutos, intervaloMinutos = 0) {
     .forEach((p) => {
       const [ano, mes, dia] = p.data.split('-').map(Number)
       const dow = new Date(ano, mes - 1, dia).getDay()
-      totais[dow] += calcularHorasTrabalhadas(p)
+      totais[dow] += p.marcacoes && p.marcacoes.length > 0
+        ? calcularMinutosPorMarcacoes(p.marcacoes)
+        : calcularHorasTrabalhadas(p)
       contagens[dow]++
     })
   const medias = totais.map((t, i) => (contagens[i] > 0 ? t / contagens[i] : 0))
@@ -24,7 +26,11 @@ export function mediaSaldoUltimos30(pontos, jornadaMinutos, intervaloMinutos = 0
   const limiteStr = limite.toISOString().slice(0, 10)
   const recentes = pontos.filter((p) => p.data >= limiteStr && p.tipo === 'registro')
   if (recentes.length === 0) return null
-  const total = recentes.reduce((s, p) => s + calcularSaldoDia(p, jornadaMinutos, intervaloMinutos), 0)
+  const total = recentes.reduce((s, p) => s + (
+    p.marcacoes && p.marcacoes.length > 0
+      ? calcularSaldoDiaMarcacoes(p.marcacoes, jornadaMinutos)
+      : calcularSaldoDia(p, jornadaMinutos, intervaloMinutos)
+  ), 0)
   return Math.round(total / recentes.length)
 }
 

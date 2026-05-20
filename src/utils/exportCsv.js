@@ -1,4 +1,4 @@
-import { calcularMinutosTrabalhados, calcularSaldoDia, formatarMinutos } from './reportCalculations'
+import { calcularMinutosTrabalhados, calcularSaldoDia, calcularSaldoDiaMarcacoes, formatarMinutos } from './reportCalculations'
 
 const TIPOS_LABEL = {
   registro: 'Registro',
@@ -23,7 +23,9 @@ export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480, i
 
   const rows = registros.map((ponto) => {
     const trabalhadas = calcularMinutosTrabalhados(ponto)
-    const saldo = calcularSaldoDia(ponto, jornadaMinutos, intervaloMinutos)
+    const saldo = ponto.marcacoes && ponto.marcacoes.length > 0
+      ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaMinutos)
+      : calcularSaldoDia(ponto, jornadaMinutos, intervaloMinutos)
 
     return [
       ponto.data,

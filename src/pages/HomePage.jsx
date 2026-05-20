@@ -89,6 +89,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!user) return
     getConfig(user.id).then(cfg => { if (cfg) setConfig(cfg) })
+      .catch(err => console.error('Erro ao carregar config:', err))
   }, [user])
 
   const jornadaMin = calcularJornadaPadraoMinutos(config.jornadaPadrao)
@@ -119,28 +120,43 @@ export default function HomePage() {
 
   async function confirmarPonto() {
     if (!sheetHora) return
-    const tipo = proximoTipo()
-    const novas = [...marcacoes, { tipo, hora: sheetHora }]
-    await salvarPonto({
-      ...(pontoAtual || {}),
-      data: dataSelecionada,
-      tipo: 'registro',
-      marcacoes: novas,
-    })
-    setSheetOpen(false)
-    const label = tipo === 'entrada' ? '✅ Entrada' : '✅ Saída'
-    setMsg(`${label} registrada às ${sheetHora}`)
-    setTimeout(() => setMsg(''), 3000)
+    try {
+      const tipo = proximoTipo()
+      const novas = [...marcacoes, { tipo, hora: sheetHora }]
+      await salvarPonto({
+        ...(pontoAtual || {}),
+        data: dataSelecionada,
+        tipo: 'registro',
+        marcacoes: novas,
+      })
+      setSheetOpen(false)
+      const label = tipo === 'entrada' ? '✅ Entrada' : '✅ Saída'
+      setMsg(`${label} registrada às ${sheetHora}`)
+      setTimeout(() => setMsg(''), 3000)
+    } catch (err) {
+      setMsg('❌ Erro ao registrar ponto. Tente novamente.')
+      setTimeout(() => setMsg(''), 3000)
+    }
   }
 
   async function editarMarcacao(index, novaHora) {
-    const novas = marcacoes.map((m, i) => i === index ? { ...m, hora: novaHora } : m)
-    await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
+    try {
+      const novas = marcacoes.map((m, i) => i === index ? { ...m, hora: novaHora } : m)
+      await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
+    } catch (err) {
+      setMsg('❌ Erro ao atualizar marcação. Tente novamente.')
+      setTimeout(() => setMsg(''), 3000)
+    }
   }
 
   async function removerMarcacao(index) {
-    const novas = marcacoes.filter((_, i) => i !== index)
-    await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
+    try {
+      const novas = marcacoes.filter((_, i) => i !== index)
+      await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
+    } catch (err) {
+      setMsg('❌ Erro ao remover marcação. Tente novamente.')
+      setTimeout(() => setMsg(''), 3000)
+    }
   }
 
   return (

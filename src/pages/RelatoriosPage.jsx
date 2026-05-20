@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../hooks/useAuth.jsx'
+import { usePontos } from '../hooks/usePontos'
 import { useRelatorios } from '../hooks/useRelatorios'
 import { getConfig } from '../utils/calcHoras'
 import { formatarMinutos } from '../utils/reportCalculations'
@@ -14,7 +14,7 @@ import SkeletonCard from '../components/UI/SkeletonCard'
 import DayCard from '../components/Historico/DayCard'
 import SaldoBadge from '../components/UI/SaldoBadge'
 import SaldoChart from '../components/Charts/SaldoChart'
-import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto } from '../utils/calcHoras'
+import { calcularHorasTrabalhadas, calcularSaldoDia, calcularMinutosPorMarcacoes, minutosParaHHMM, minutosParaTexto } from '../utils/calcHoras'
 
 const PRESETS = [
   { label: 'Mês atual', key: 'mes_atual' },
@@ -41,7 +41,8 @@ function getMesAnterior() {
 }
 
 export default function RelatoriosPage() {
-  const { user } = useAuth()
+  const { pontos } = usePontos()
+  const { loading, error, dados, carregarRelatorio } = useRelatorios(pontos)
   const [config, setConfig] = useState({
     jornadaMinutos: 480,
     intervaloMinutos: 60,
@@ -50,7 +51,6 @@ export default function RelatoriosPage() {
     horaEntradaPadrao: '08:00',
     horaSaidaPadrao: '17:00'
   })
-  const { loading, error, dados, carregarRelatorio } = useRelatorios()
   const [preset, setPreset] = useState('mes_atual')
   const [dataInicio, setDataInicio] = useState(getMesAtual().inicio)
   const [dataFim, setDataFim] = useState(getMesAtual().fim)
@@ -67,17 +67,17 @@ export default function RelatoriosPage() {
     }
   }, [preset])
 
+  // Efeito 1 — Carrega config do usuário
   useEffect(() => {
-    if (!user) return
-    getConfig(user.id).then(cfg => {
-      if (cfg) {
-        setConfig(cfg)
-        carregarRelatorio(dataInicio, dataFim, cfg.jornadaMinutos, cfg.intervaloMinutos)
-      } else {
-        carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
-      }
-    })
-  }, [user])
+    getConfig().then(cfg => {
+      if (cfg) setConfig(cfg)
+    }).catch(err => console.error('Erro ao carregar config:', err))
+  }, [])
+
+  // Efeito 2 — Carrega relatório quando datas ou config mudam
+  useEffect(() => {
+    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
+  }, [dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos])
 
   function handleAtualizar() {
     if (!dataInicio || !dataFim || dataInicio > dataFim) return
@@ -172,7 +172,11 @@ export default function RelatoriosPage() {
                 key={ponto.data}
                 ponto={ponto}
                 saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)}
-                horasFormatadas={minutosParaHHMM(calcularHorasTrabalhadas(ponto))}
+                horasFormatadas={minutosParaHHMM(
+                  ponto.marcacoes && ponto.marcacoes.length > 0
+                    ? calcularMinutosPorMarcacoes(ponto.marcacoes)
+                    : calcularHorasTrabalhadas(ponto)
+                )}
                 formatter={minutosParaTexto}
               />
             ))}

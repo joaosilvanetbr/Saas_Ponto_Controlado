@@ -4,7 +4,10 @@ export function useTimer(entradaStr) {
   const [minutos, setMinutos] = useState(0)
 
   useEffect(() => {
-    if (!entradaStr) return
+    if (!entradaStr) {
+      setMinutos(0)
+      return
+    }
 
     const calcular = () => {
       const agora = new Date()

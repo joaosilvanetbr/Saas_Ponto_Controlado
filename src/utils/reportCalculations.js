@@ -1,11 +1,16 @@
-import { diffMinutos, calcularSaldoDia as calcularSaldoDiaBase } from './calcHoras'
+import { diffMinutos, calcularSaldoDia as calcularSaldoDiaBase, calcularMinutosPorMarcacoes, calcularSaldoDiaMarcacoes } from './calcHoras'
 
 export { calcularSaldoDiaBase as calcularSaldoDia }
+export { calcularSaldoDiaMarcacoes }
 
 export function calcularMinutosTrabalhados(ponto) {
   if (!ponto || ponto.tipo === 'falta') return 0
   if (ponto.tipo === 'feriado' || ponto.tipo === 'ferias') return 0
   if (ponto.tipo === 'extra_pago') return 0
+
+  if (ponto.marcacoes && ponto.marcacoes.length > 0) {
+    return calcularMinutosPorMarcacoes(ponto.marcacoes)
+  }
 
   let total = 0
 
@@ -38,7 +43,9 @@ export function gerarResumo(registros, jornadaMinutos = 480, intervaloMinutos = 
 
   for (const ponto of registros) {
     const trabalhadas = calcularMinutosTrabalhados(ponto)
-    const saldo = calcularSaldoDiaBase(ponto, jornadaMinutos, intervaloMinutos)
+    const saldo = ponto.marcacoes && ponto.marcacoes.length > 0
+      ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaMinutos)
+      : calcularSaldoDiaBase(ponto, jornadaMinutos, intervaloMinutos)
 
     totalTrabalhadas += trabalhadas
     saldoPeriodo += saldo

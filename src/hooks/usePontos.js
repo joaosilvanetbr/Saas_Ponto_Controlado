@@ -13,7 +13,7 @@ function mapRow(row) {
     saida2: row.saida2 || '',
     obs: row.obs || '',
     horasExtrasMin: row.horas_extras_min || 0,
-    marcacoes: row.marcacoes || [],  // NOVO
+    marcacoes: row.marcacoes || [],
   }
 }
 
@@ -58,7 +58,7 @@ export function usePontos() {
       saida2: ponto.saida2 || null,
       obs: ponto.obs || null,
       horas_extras_min: ponto.horasExtrasMin || 0,
-      marcacoes: ponto.marcacoes || [],  // NOVO
+      marcacoes: ponto.marcacoes || [],
       updated_at: new Date().toISOString(),
     }
 
@@ -68,25 +68,28 @@ export function usePontos() {
       .select()
       .single()
 
-    if (!error && data) {
-      const mapped = mapRow(data)
-      setPontos(prev => {
-        const lista = [...prev]
-        const idx = lista.findIndex((p) => p.data === mapped.data)
-        if (idx >= 0) lista[idx] = mapped
-        else lista.unshift(mapped)
-        return lista
-      })
-    }
+    if (error) throw new Error(error.message || 'Erro ao salvar ponto')
+
+    const mapped = mapRow(data)
+    setPontos(prev => {
+      const lista = [...prev]
+      const idx = lista.findIndex((p) => p.data === mapped.data)
+      if (idx >= 0) lista[idx] = mapped
+      else lista.unshift(mapped)
+      return lista
+    })
   }, [user])
 
   const deletarPonto = useCallback(async (data) => {
     if (!user) return
-    await supabase
+    const { error } = await supabase
       .from('pontos')
       .delete()
       .eq('user_id', user.id)
       .eq('data', data)
+
+    if (error) throw new Error(error.message || 'Erro ao deletar ponto')
+
     setPontos(prev => prev.filter((p) => p.data !== data))
   }, [user])
 
