@@ -35,7 +35,7 @@ function calcularJornada(entrada, saida, intervalo) {
 
 export default function ConfigPage() {
   const { user, logout } = useAuth()
-  const { pedirPermissao } = useNotificacoes()
+  const { pedirPermissao } = useNotificacoes(user?.id)
   const { podeInstalar, instalar } = useInstallPWA()
   const [nome, setNome] = useState('')
   const [empresaNome, setEmpresaNome] = useState('')
@@ -47,10 +47,10 @@ export default function ConfigPage() {
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [permissao, setPermissao] = useState(Notification?.permission || 'default')
-  const [lembretes, setLembretes] = useState(() => getConfig().lembretes || { ativo: false, entrada: '08:00', saida: '17:48' })
+  const [lembretes, setLembretes] = useState(() => getConfig(user?.id).lembretes || { ativo: false, entrada: '08:00', saida: '17:48' })
 
   useEffect(() => {
-    const cfg = getConfig()
+    const cfg = getConfig(user?.id)
     setNome(cfg.nome || user?.email?.split('@')[0] || '')
     setEmpresaNome(cfg.empresaNome || '')
     const intMin = cfg.intervaloMinutos ?? 60
@@ -65,7 +65,7 @@ export default function ConfigPage() {
   const jornadaValida = jornMin >= 60 && jornMin <= 720
 
   useEffect(() => {
-    const config = getConfig()
+    const config = getConfig(user?.id)
     saveConfig({
       ...config,
       jornadaMinutos: jornMin,
@@ -76,7 +76,7 @@ export default function ConfigPage() {
       horaEntradaPadrao,
       horaSaidaPadrao,
       lembretes,
-    })
+    }, user?.id)
   }, [horaEntradaPadrao, horaSaidaPadrao, intervaloMinutos])
 
   function toggleDia(dia) {
@@ -128,7 +128,7 @@ export default function ConfigPage() {
       horaEntradaPadrao,
       horaSaidaPadrao,
       lembretes,
-    })
+    }, user?.id)
     setLoading(false)
     setMsg('Configurações salvas!')
     setTimeout(() => setMsg(''), 2500)

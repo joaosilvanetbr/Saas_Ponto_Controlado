@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../hooks/useAuth.jsx'
 import { useRelatorios } from '../hooks/useRelatorios'
 import { getConfig } from '../utils/calcHoras'
 import { formatarMinutos } from '../utils/reportCalculations'
@@ -40,7 +41,8 @@ function getMesAnterior() {
 }
 
 export default function RelatoriosPage() {
-  const config = getConfig()
+  const { user } = useAuth()
+  const config = getConfig(user?.id)
   const { loading, error, dados, carregarRelatorio } = useRelatorios()
   const [preset, setPreset] = useState('mes_atual')
   const [dataInicio, setDataInicio] = useState(getMesAtual().inicio)
@@ -59,17 +61,17 @@ export default function RelatoriosPage() {
   }, [preset])
 
   useEffect(() => {
-    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos)
+    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
   }, [])
 
   function handleAtualizar() {
     if (!dataInicio || !dataFim || dataInicio > dataFim) return
-    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos)
+    carregarRelatorio(dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
   }
 
   function handleExportar() {
     if (!dados || !dados.registros.length) return
-    downloadCsv(dados.registros, dataInicio, dataFim, config.jornadaMinutos)
+    downloadCsv(dados.registros, dataInicio, dataFim, config.jornadaMinutos, config.intervaloMinutos)
   }
 
   return (
@@ -136,6 +138,7 @@ export default function RelatoriosPage() {
             <SaldoChart
               registros={dados.registros}
               jornadaMinutos={config.jornadaMinutos}
+              intervaloMinutos={config.intervaloMinutos}
             />
           </div>
 

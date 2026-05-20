@@ -1,30 +1,31 @@
-const STORAGE_KEY = 'ponto_facil_config'
+const CONFIG_KEY_PREFIX = 'ponto_facil_config_'
 
-export function getConfig() {
+const DEFAULT_CONFIG = {
+  jornadaMinutos: 480,
+  empresaNome: '',
+  intervaloMinutos: 60,
+  diasTrabalho: [1, 2, 3, 4, 5],
+  horaEntradaPadrao: '08:00',
+  horaSaidaPadrao: '17:00',
+}
+
+export function getConfig(userId = null) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {
-      jornadaMinutos: 480,
-      empresaNome: '',
-      intervaloMinutos: 60,
-      diasTrabalho: [1, 2, 3, 4, 5],
-      horaEntradaPadrao: '08:00',
-      horaSaidaPadrao: '17:00',
+    if (userId) {
+      const rawUser = localStorage.getItem(CONFIG_KEY_PREFIX + userId)
+      if (rawUser) return { ...DEFAULT_CONFIG, ...JSON.parse(rawUser) }
     }
+    const rawLegacy = localStorage.getItem('ponto_facil_config')
+    if (rawLegacy) return { ...DEFAULT_CONFIG, ...JSON.parse(rawLegacy) }
+    return { ...DEFAULT_CONFIG }
   } catch {
-    return {
-      jornadaMinutos: 480,
-      empresaNome: '',
-      intervaloMinutos: 60,
-      diasTrabalho: [1, 2, 3, 4, 5],
-      horaEntradaPadrao: '08:00',
-      horaSaidaPadrao: '17:00',
-    }
+    return { ...DEFAULT_CONFIG }
   }
 }
 
-export function saveConfig(config) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+export function saveConfig(config, userId = null) {
+  const key = userId ? CONFIG_KEY_PREFIX + userId : 'ponto_facil_config'
+  localStorage.setItem(key, JSON.stringify(config))
 }
 
 export function calcularHorasTrabalhadas(ponto) {

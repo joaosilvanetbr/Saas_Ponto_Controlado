@@ -1,6 +1,6 @@
 import { calcularSaldoDia, calcularHorasTrabalhadas } from './calcHoras'
 
-export function diaMaisProdutivo(pontos, jornadaMinutos) {
+export function diaMaisProdutivo(pontos, jornadaMinutos, intervaloMinutos = 0) {
   const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
   const totais = Array(7).fill(0)
   const contagens = Array(7).fill(0)
@@ -18,13 +18,13 @@ export function diaMaisProdutivo(pontos, jornadaMinutos) {
   return dias[medias.indexOf(max)]
 }
 
-export function mediaSaldoUltimos30(pontos, jornadaMinutos) {
+export function mediaSaldoUltimos30(pontos, jornadaMinutos, intervaloMinutos = 0) {
   const limite = new Date()
   limite.setDate(limite.getDate() - 30)
   const limiteStr = limite.toISOString().slice(0, 10)
   const recentes = pontos.filter((p) => p.data >= limiteStr && p.tipo === 'registro')
   if (recentes.length === 0) return null
-  const total = recentes.reduce((s, p) => s + calcularSaldoDia(p, jornadaMinutos), 0)
+  const total = recentes.reduce((s, p) => s + calcularSaldoDia(p, jornadaMinutos, intervaloMinutos), 0)
   return Math.round(total / recentes.length)
 }
 

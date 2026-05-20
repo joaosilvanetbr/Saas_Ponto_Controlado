@@ -11,7 +11,7 @@ import ConfigPage from './pages/ConfigPage'
 import ProtectedRoute from './components/Layout/ProtectedRoute'
 import BottomNav from './components/Layout/BottomNav'
 
-export default function App() {
+function NotificacoesInit() {
   const { verificarLembrete } = useNotificacoes()
 
   useEffect(() => {
@@ -19,9 +19,14 @@ export default function App() {
     return () => clearInterval(interval)
   }, [verificarLembrete])
 
+  return null
+}
+
+export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificacoesInit />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />

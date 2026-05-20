@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { getConfig } from '../utils/calcHoras'
 
-export function useNotificacoes() {
+export function useNotificacoes(userId = null) {
 
   const pedirPermissao = useCallback(async () => {
     if (!('Notification' in window)) return 'unsupported'
@@ -20,7 +20,7 @@ export function useNotificacoes() {
   }, [])
 
   const verificarLembrete = useCallback(() => {
-    const config = getConfig()
+    const config = getConfig(userId)
     if (!config.lembretes?.ativo) return
 
     const agora = new Date()

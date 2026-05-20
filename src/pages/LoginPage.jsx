@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 
 export default function LoginPage() {
@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [focusField, setFocusField] = useState('')
   const { login, signup } = useAuth()
   const navigate = useNavigate()
 
@@ -31,26 +32,76 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-600">Ponto Fácil</h1>
-          <p className="text-gray-500 mt-1 text-sm">Controle de banco de horas</p>
+    <div style={{
+      minHeight: '100dvh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--color-bg)',
+      padding: 'var(--space-4)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+          <span style={{ fontSize: 40, display: 'block', marginBottom: 'var(--space-2)' }}>🌅</span>
+          <h1 style={{
+            fontSize: 'var(--text-xl)',
+            fontWeight: 800,
+            color: 'var(--color-accent)',
+            margin: 0,
+          }}>
+            PontoControlado
+          </h1>
+          <p style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-muted)',
+            margin: '4px 0 0',
+          }}>
+            Controle de banco de horas
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-6)',
+          }}
+        >
+          <h2 style={{
+            fontSize: 'var(--text-lg)',
+            fontWeight: 600,
+            color: 'var(--color-text)',
+            margin: '0 0 var(--space-4)',
+          }}>
             {isSignup ? 'Criar conta' : 'Entrar'}
           </h2>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">
+            <div style={{
+              background: 'var(--color-danger-bg)',
+              color: 'var(--color-danger)',
+              fontSize: 'var(--text-sm)',
+              padding: 'var(--space-3)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 'var(--space-4)',
+            }}>
               {error}
             </div>
           )}
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <label
+              htmlFor="email"
+              style={{
+                display: 'block',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 500,
+                color: 'var(--color-text-secondary)',
+                marginBottom: 'var(--space-2)',
+              }}
+            >
               E-mail
             </label>
             <input
@@ -59,13 +110,35 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              onFocus={() => setFocusField('email')}
+              onBlur={() => setFocusField('')}
               placeholder="seu@email.com"
+              style={{
+                width: '100%',
+                background: 'var(--color-surface-2)',
+                border: `1px solid ${focusField === 'email' ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-3) var(--space-4)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text)',
+                outline: 'none',
+                boxSizing: 'border-box',
+                fontFamily: 'var(--font-native)',
+              }}
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <label
+              htmlFor="password"
+              style={{
+                display: 'block',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 500,
+                color: 'var(--color-text-secondary)',
+                marginBottom: 'var(--space-2)',
+              }}
+            >
               Senha
             </label>
             <input
@@ -75,32 +148,77 @@ export default function LoginPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              onFocus={() => setFocusField('password')}
+              onBlur={() => setFocusField('')}
               placeholder="Mínimo 6 caracteres"
+              style={{
+                width: '100%',
+                background: 'var(--color-surface-2)',
+                border: `1px solid ${focusField === 'password' ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-3) var(--space-4)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text)',
+                outline: 'none',
+                boxSizing: 'border-box',
+                fontFamily: 'var(--font-native)',
+              }}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{
+              width: '100%',
+              background: 'var(--color-accent)',
+              color: 'var(--color-accent-on)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-3) var(--space-4)',
+              fontSize: 'var(--text-base)',
+              fontWeight: 700,
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.5 : 1,
+              fontFamily: 'var(--font-native)',
+            }}
           >
             {loading ? 'Carregando...' : isSignup ? 'Criar conta' : 'Entrar'}
           </button>
 
-          <p className="text-center text-sm text-gray-500">
+          <p style={{
+            textAlign: 'center',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-muted)',
+            margin: 'var(--space-4) 0 0',
+          }}>
             {isSignup ? 'Já tem conta?' : 'Não tem conta?'}{' '}
             <button
               type="button"
               onClick={() => setIsSignup(!isSignup)}
-              className="text-indigo-600 font-medium hover:underline"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-accent)',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontFamily: 'var(--font-native)',
+                fontSize: 'var(--text-sm)',
+                padding: 0,
+              }}
             >
               {isSignup ? 'Entrar' : 'Cadastre-se'}
             </button>
           </p>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p style={{
+          textAlign: 'center',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--color-text-faint)',
+          marginTop: 'var(--space-6)',
+        }}>
           App de uso pessoal — sem valor legal
         </p>
       </div>

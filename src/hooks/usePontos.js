@@ -38,16 +38,17 @@ export function usePontos() {
   }, [pontos])
 
   const salvarPonto = useCallback((ponto) => {
-    const lista = getPontos(user.id)
-    const idx = lista.findIndex((p) => p.data === ponto.data)
-    if (idx >= 0) {
-      lista[idx] = { ...lista[idx], ...ponto }
-    } else {
-      lista.push(ponto)
-    }
-    savePontos(user.id, lista)
-    setPontos(lista)
-    return lista[idx >= 0 ? idx : lista.length - 1]
+    setPontos(prev => {
+      const lista = [...prev]
+      const idx = lista.findIndex((p) => p.data === ponto.data)
+      if (idx >= 0) {
+        lista[idx] = { ...lista[idx], ...ponto }
+      } else {
+        lista.push(ponto)
+      }
+      savePontos(user.id, lista)
+      return lista
+    })
   }, [user])
 
   const deletarPonto = useCallback((data) => {

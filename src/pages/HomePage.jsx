@@ -37,11 +37,11 @@ export default function HomePage() {
   const { pontos, getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
   const hoje = dataHoje()
   const pontoHoje = getPontoDoDia(hoje)
-  const config = getConfig()
+  const config = getConfig(user?.id)
 
   const agora = new Date()
   const pontosDoMes = getPontosDoMes(agora.getFullYear(), agora.getMonth())
-  const { saldoMes } = useBancoHoras(pontosDoMes)
+  const { saldoMes } = useBancoHoras(pontosDoMes, user?.id)
 
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
@@ -132,8 +132,8 @@ export default function HomePage() {
         .sort((a, b) => b.data.localeCompare(a.data))
         .slice(0, 5)
 
-  const diaProd = diaMaisProdutivo(pontos, config.jornadaMinutos)
-  const mediaSaldo = mediaSaldoUltimos30(pontos, config.jornadaMinutos)
+  const diaProd = diaMaisProdutivo(pontos, config.jornadaMinutos, config.intervaloMinutos)
+  const mediaSaldo = mediaSaldoUltimos30(pontos, config.jornadaMinutos, config.intervaloMinutos)
   const sequencia = sequenciaSemFalta(pontos)
 
   const ehSaida = getTipoBotao(pontoHoje) === 'saida'
@@ -181,7 +181,7 @@ export default function HomePage() {
 
       {/* SALDO DESTAQUE */}
       {(() => {
-        const { jornadaMinutos, intervaloMinutos } = getConfig()
+        const { jornadaMinutos, intervaloMinutos } = config
         let saldoMin = 0
         if (pontoHoje?.entrada1 && pontoHoje?.saida1) {
           const [eh, em] = pontoHoje.entrada1.split(':').map(Number)

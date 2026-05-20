@@ -30,18 +30,18 @@ export function useRelatorios() {
       .sort((a, b) => b.data.localeCompare(a.data))
   }, [user])
 
-  const getResumoPeriodo = useCallback((dataInicio, dataFim, jornadaMinutos = 480) => {
+  const getResumoPeriodo = useCallback((dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) => {
     const registros = getRegistrosPorPeriodo(dataInicio, dataFim)
-    return gerarResumo(registros, jornadaMinutos)
+    return gerarResumo(registros, jornadaMinutos, intervaloMinutos)
   }, [getRegistrosPorPeriodo])
 
-  const carregarRelatorio = useCallback((dataInicio, dataFim, jornadaMinutos = 480) => {
+  const carregarRelatorio = useCallback((dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) => {
     setLoading(true)
     setError('')
 
     try {
       const registros = getRegistrosPorPeriodo(dataInicio, dataFim)
-      const resumo = gerarResumo(registros, jornadaMinutos)
+      const resumo = gerarResumo(registros, jornadaMinutos, intervaloMinutos)
       setDados({ registros, resumo })
     } catch (err) {
       setError(err.message || 'Erro ao carregar relatório')

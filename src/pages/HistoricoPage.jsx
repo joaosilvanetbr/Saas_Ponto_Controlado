@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useMesesFechados } from '../hooks/useMesesFechados'
 import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig } from '../utils/calcHoras'
@@ -34,9 +35,10 @@ function formatarDataCompleta(dataStr) {
 
 export default function HistoricoPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { pontos, deletarPonto } = usePontos()
   const { isMesFechado, fecharMes, reabrirMes } = useMesesFechados()
-  const config = getConfig()
+  const config = getConfig(user?.id)
   const [mesSelecionado, setMesSelecionado] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`

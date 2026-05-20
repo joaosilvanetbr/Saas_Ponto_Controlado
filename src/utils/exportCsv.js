@@ -18,12 +18,12 @@ function escapeCsv(value) {
   return str
 }
 
-export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480) {
+export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) {
   const header = 'Data,Tipo,Entrada 1,Saída 1,Entrada 2,Saída 2,Horas Trabalhadas,Saldo do Dia,Horas Extras,Observação'
 
   const rows = registros.map((ponto) => {
     const trabalhadas = calcularMinutosTrabalhados(ponto)
-    const saldo = calcularSaldoDia(ponto, jornadaMinutos)
+    const saldo = calcularSaldoDia(ponto, jornadaMinutos, intervaloMinutos)
 
     return [
       ponto.data,
@@ -42,8 +42,8 @@ export function gerarCsv(registros, dataInicio, dataFim, jornadaMinutos = 480) {
   return [header, ...rows].join('\n')
 }
 
-export function downloadCsv(registros, dataInicio, dataFim, jornadaMinutos = 480) {
-  const csv = gerarCsv(registros, dataInicio, dataFim, jornadaMinutos)
+export function downloadCsv(registros, dataInicio, dataFim, jornadaMinutos = 480, intervaloMinutos = 0) {
+  const csv = gerarCsv(registros, dataInicio, dataFim, jornadaMinutos, intervaloMinutos)
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

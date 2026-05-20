@@ -9,13 +9,13 @@ import {
 import { calcularSaldoDia } from '../../utils/calcHoras'
 import { formatarMinutos } from '../../utils/reportCalculations'
 
-export default function SaldoChart({ registros, jornadaMinutos }) {
+export default function SaldoChart({ registros, jornadaMinutos, intervaloMinutos = 0 }) {
   if (!registros || registros.length === 0) return null
 
   const pontos = registros
     .sort((a, b) => a.data.localeCompare(b.data))
     .reduce((acc, ponto, i) => {
-      const saldoDia = calcularSaldoDia(ponto, jornadaMinutos)
+      const saldoDia = calcularSaldoDia(ponto, jornadaMinutos, intervaloMinutos)
       const acumulado = (acc[i - 1]?.acumulado ?? 0) + saldoDia
       const label = ponto.data.slice(8)
       acc.push({ label, acumulado, saldoDia })
