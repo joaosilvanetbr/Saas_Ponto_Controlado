@@ -12,7 +12,8 @@ import ProtectedRoute from './components/Layout/ProtectedRoute'
 import BottomNav from './components/Layout/BottomNav'
 
 function NotificacoesInit() {
-  const { verificarLembrete } = useNotificacoes()
+  const { user } = useAuth()
+  const { verificarLembrete } = useNotificacoes(user?.id)
 
   useEffect(() => {
     const interval = setInterval(verificarLembrete, 60 * 1000)
