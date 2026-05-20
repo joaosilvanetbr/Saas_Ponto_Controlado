@@ -96,7 +96,9 @@ export function calcularSaldoDia(ponto, jornadaMinutos = 480, intervaloMinutos =
   if (ponto.tipo === 'extra_banco') return ponto.horasExtrasMin || 0
 
   const trabalhadas = calcularHorasTrabalhadas(ponto)
-  const intervalo = ponto.entrada2 ? 0 : intervaloMinutos
+  // Se tem entrada2, o intervalo está contido no gap saida1→entrada2
+  // Se não tem entrada2, desconta o intervalo configurado (jornada simples ou em andamento)
+  const intervalo = (ponto.entrada2 && ponto.saida1) ? 0 : intervaloMinutos
   return trabalhadas - intervalo - jornadaMinutos
 }
 
