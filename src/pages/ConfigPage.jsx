@@ -37,13 +37,7 @@ export default function ConfigPage() {
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [permissao, setPermissao] = useState(Notification?.permission || 'default')
-  const [lembretes, setLembretes] = useState(() => {
-    try {
-      const raw = localStorage.getItem(`ponto_facil_lembretes_${user?.id}`)
-      if (raw) return JSON.parse(raw)
-    } catch {}
-    return { ativo: false, entrada: '08:00', saida: '17:48' }
-  })
+  const [lembretes, setLembretes] = useState({ ativo: false, entrada: '08:00', saida: '17:48' })
 
   useEffect(() => {
     async function carregarConfig() {
@@ -53,16 +47,18 @@ export default function ConfigPage() {
         setEmpresaNome(cfg.empresaNome || '')
         setDiasTrabalho(cfg.diasTrabalho || [1, 2, 3, 4, 5])
         setJornadaPadrao(cfg.jornadaPadrao?.length > 0 ? cfg.jornadaPadrao : JORNADA_DEFAULT)
+        if (cfg.lembretes) {
+          setLembretes(cfg.lembretes)
+        } else {
+          try {
+            const raw = localStorage.getItem(`ponto_facil_lembretes_${user?.id}`)
+            if (raw) setLembretes(JSON.parse(raw))
+          } catch { /* ignore parse error */ }
+        }
       }
     }
     if (user) carregarConfig()
   }, [user])
-
-  useEffect(() => {
-    if (user?.id) {
-      localStorage.setItem(`ponto_facil_lembretes_${user.id}`, JSON.stringify(lembretes))
-    }
-  }, [lembretes, user])
 
   function toggleDia(dia) {
     setDiasTrabalho(prev =>

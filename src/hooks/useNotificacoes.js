@@ -18,12 +18,14 @@ export function useNotificacoes(userId = null) {
     })
   }, [])
 
-  const verificarLembrete = useCallback(() => {
-    let lembretes = null
-    try {
-      const raw = localStorage.getItem(`ponto_facil_lembretes_${userId}`)
-      if (raw) lembretes = JSON.parse(raw)
-    } catch {}
+  const verificarLembrete = useCallback((lembretesOverride) => {
+    let lembretes = lembretesOverride
+    if (!lembretes) {
+      try {
+        const raw = localStorage.getItem(`ponto_facil_lembretes_${userId}`)
+        if (raw) lembretes = JSON.parse(raw)
+      } catch { /* ignore parse error */ }
+    }
     if (!lembretes?.ativo) return
 
     const agora = new Date()

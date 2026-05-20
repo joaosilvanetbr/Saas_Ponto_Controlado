@@ -34,6 +34,11 @@ async function getConfigSupabase(userId) {
     horaEntradaPadrao: data.hora_entrada_padrao ?? '08:00',
     horaSaidaPadrao:   data.hora_saida_padrao ?? '17:00',
     jornadaPadrao:     data.jornada_padrao ?? [],
+    lembretes: {
+      ativo: data.lembretes_ativo ?? false,
+      entrada: data.lembrete_entrada ?? '08:00',
+      saida: data.lembrete_saida ?? '17:48',
+    },
   }
 }
 
@@ -51,6 +56,9 @@ async function saveConfigSupabase(config, userId) {
       hora_entrada_padrao: config.horaEntradaPadrao,
       hora_saida_padrao:   config.horaSaidaPadrao,
       jornada_padrao:      config.jornadaPadrao ?? [],
+      lembretes_ativo:     config.lembretes?.ativo ?? false,
+      lembrete_entrada:    config.lembretes?.entrada ?? '08:00',
+      lembrete_saida:      config.lembretes?.saida ?? '17:48',
       updated_at:          new Date().toISOString(),
     }, { onConflict: 'user_id' })
 }
