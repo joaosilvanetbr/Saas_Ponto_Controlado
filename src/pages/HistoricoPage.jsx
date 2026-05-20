@@ -57,6 +57,19 @@ export default function HistoricoPage() {
     return calcularHorasTrabalhadas(ponto)
   }
 
+  function calcularSaldoPonto(ponto, cfg) {
+    const jornadaFinal = cfg.jornadaPadrao?.length
+      ? calcularJornadaPadraoMinutos(cfg.jornadaPadrao)
+      : cfg.jornadaMinutos > 0
+        ? cfg.jornadaMinutos
+        : 480
+
+    if (ponto.marcacoes && ponto.marcacoes.length > 0) {
+      return calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
+    }
+    return calcularSaldoDia(ponto, cfg.jornadaMinutos, cfg.intervaloMinutos || 0)
+  }
+
   const [mesSelecionado, setMesSelecionado] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -72,21 +85,13 @@ export default function HistoricoPage() {
     .sort((a, b) => a.data.localeCompare(b.data))
 
   const pontosComAcumulado = useMemo(() => {
-    const jornadaFinal = config.jornadaPadrao?.length
-      ? calcularJornadaPadraoMinutos(config.jornadaPadrao)
-      : config.jornadaMinutos > 0
-        ? config.jornadaMinutos
-        : 480
-
     return pontosDoMes.reduce((acc, ponto) => {
-      const saldo = ponto.marcacoes && ponto.marcacoes.length > 0
-        ? calcularSaldoDiaMarcacoes(ponto.marcacoes, jornadaFinal)
-        : calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)
+      const saldo = calcularSaldoPonto(ponto, config)
       const acumulado = (acc.length > 0 ? acc[acc.length - 1].acumulado : 0) + saldo
       acc.push({ ...ponto, saldo, acumulado })
       return acc
     }, [])
-  }, [pontosDoMes, config.jornadaMinutos, config.jornadaPadrao, config.intervaloMinutos])
+  }, [pontosDoMes, config])
 
   const pontosReverso = [...pontosComAcumulado].reverse()
   const saldoFinal = pontosComAcumulado.length > 0 ? pontosComAcumulado[pontosComAcumulado.length - 1].acumulado : 0
