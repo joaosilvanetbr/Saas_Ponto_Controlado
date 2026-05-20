@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useBancoHoras } from '../hooks/useBancoHoras'
@@ -13,6 +14,7 @@ import EmptyState from '../components/UI/EmptyState'
 import SkeletonCard from '../components/UI/SkeletonCard'
 import DayCard from '../components/Historico/DayCard'
 import InsightCard from '../components/UI/InsightCard'
+import BottomSheet from '../components/UI/BottomSheet'
 
 function dataHoje() {
   const d = new Date()
@@ -30,6 +32,7 @@ function dataExtenso() {
 
 export default function HomePage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { pontos, getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
   const hoje = dataHoje()
   const pontoHoje = getPontoDoDia(hoje)
@@ -42,6 +45,8 @@ export default function HomePage() {
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [avisoSaida, setAvisoSaida] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetHora, setSheetHora] = useState('')
 
   function proximoCampo(ponto) {
     if (!ponto) return 'entrada1'
@@ -59,25 +64,34 @@ export default function HomePage() {
     return 'saida'
   }
 
-  function baterPonto() {
+  function abrirSheetPonto() {
     const campo = proximoCampo(pontoHoje)
     if (!campo) {
       setMsg('Jornada de hoje completa (4 registros)')
       setTimeout(() => setMsg(''), 3000)
       return
     }
+    setSheetHora(horaAgora())
+    setSheetOpen(true)
+  }
+
+  function confirmarPonto() {
+    if (!sheetHora) return
+    const campo = proximoCampo(pontoHoje)
+    if (!campo) return
 
     setLoading(true)
     const dados = {
       user_id: user.id,
       data: hoje,
       tipo: 'registro',
-      [campo]: horaAgora()
+      [campo]: sheetHora,
     }
 
     salvarPonto(dados)
     setLoading(false)
-    setMsg(`${campo === 'entrada1' || campo === 'entrada2' ? 'Entrada' : 'Saída'} registrada às ${horaAgora()}`)
+    setSheetOpen(false)
+    setMsg(`${campo === 'entrada1' || campo === 'entrada2' ? 'Entrada' : 'Saída'} registrada às ${sheetHora}`)
     setTimeout(() => setMsg(''), 3000)
   }
 
@@ -101,6 +115,8 @@ export default function HomePage() {
   const diaProd = diaMaisProdutivo(pontos, config.jornadaMinutos)
   const mediaSaldo = mediaSaldoUltimos30(pontos, config.jornadaMinutos)
   const sequencia = sequenciaSemFalta(pontos)
+
+  const ehSaida = getTipoBotao(pontoHoje) === 'saida'
 
   return (
     <AppLayout title="Hoje">
@@ -140,7 +156,7 @@ export default function HomePage() {
       </p>
 
       <div style={{ marginBottom: 'var(--space-4)' }}>
-        <BaterPontoButton tipo={getTipoBotao(pontoHoje)} onPress={baterPonto} loading={loading} />
+        <BaterPontoButton tipo={getTipoBotao(pontoHoje)} onPress={abrirSheetPonto} loading={loading} />
       </div>
 
       <Card style={{ marginBottom: 'var(--space-4)' }}>
@@ -217,6 +233,66 @@ export default function HomePage() {
           </div>
         </>
       )}
+
+      <BottomSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={ehSaida ? '🌅 Registrar Saída' : '⏱ Registrar Entrada'}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <div>
+            <label style={{
+              display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600,
+              color: 'var(--color-text-muted)', textTransform: 'uppercase',
+              letterSpacing: '0.06em', marginBottom: 'var(--space-2)',
+            }}>
+              {ehSaida ? 'Hora de saída' : 'Hora de entrada'}
+            </label>
+            <input
+              type="time"
+              value={sheetHora}
+              onChange={e => setSheetHora(e.target.value)}
+              style={{
+                width: '100%', padding: 'var(--space-3) var(--space-4)',
+                fontSize: 'var(--text-xl)', fontWeight: 700, textAlign: 'center',
+                background: 'var(--color-surface-2)',
+                color: 'var(--color-text)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-lg)',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          <button
+            onClick={confirmarPonto}
+            disabled={!sheetHora}
+            style={{
+              width: '100%', padding: 'var(--space-4)',
+              background: sheetHora ? 'var(--color-accent)' : 'var(--color-divider)',
+              color: 'var(--color-accent-on)',
+              borderRadius: 'var(--radius-lg)', border: 'none',
+              fontSize: 'var(--text-base)', fontWeight: 700,
+              cursor: sheetHora ? 'pointer' : 'not-allowed',
+              boxShadow: sheetHora ? '0 4px 16px rgba(232,84,26,0.35)' : 'none',
+            }}
+          >
+            Confirmar
+          </button>
+
+          <button
+            onClick={() => { setSheetOpen(false); navigate('/lancamento') }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)',
+              textAlign: 'center', padding: 'var(--space-2)',
+              textDecoration: 'underline',
+            }}
+          >
+            Lançar falta, feriado ou correção →
+          </button>
+        </div>
+      </BottomSheet>
     </AppLayout>
   )
 }
