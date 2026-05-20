@@ -2,22 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { supabase } from '../lib/supabase'
 
-function lsKey(userId) {
-  return `ponto_facil_pontos_${userId}`
-}
-
-function lsGet(userId) {
-  try {
-    return JSON.parse(localStorage.getItem(lsKey(userId)) || '[]')
-  } catch {
-    return []
-  }
-}
-
-function lsSave(userId, pontos) {
-  localStorage.setItem(lsKey(userId), JSON.stringify(pontos))
-}
-
 function mapRow(row) {
   return {
     id: row.id,
@@ -39,12 +23,6 @@ export function usePontos() {
 
   useEffect(() => {
     if (!user) return
-
-    if (!supabase) {
-      setPontos(lsGet(user.id))
-      return
-    }
-
     setLoading(true)
     supabase
       .from('pontos')
@@ -52,13 +30,9 @@ export function usePontos() {
       .eq('user_id', user.id)
       .order('data', { ascending: false })
       .then(({ data, error }) => {
-        if (!error && data) {
-          setPontos(data.map(mapRow))
-        }
+        if (!error && data) setPontos(data.map(mapRow))
       })
-      .finally(() => {
-        setLoading(false)
-      })
+      .finally(() => setLoading(false))
   }, [user])
 
   const getPontoDoDia = useCallback((data) => {
@@ -72,21 +46,6 @@ export function usePontos() {
 
   const salvarPonto = useCallback(async (ponto) => {
     if (!user) return
-
-    if (!supabase) {
-      setPontos(prev => {
-        const lista = [...prev]
-        const idx = lista.findIndex((p) => p.data === ponto.data)
-        if (idx >= 0) {
-          lista[idx] = { ...lista[idx], ...ponto }
-        } else {
-          lista.push(ponto)
-        }
-        lsSave(user.id, lista)
-        return lista
-      })
-      return
-    }
 
     const payload = {
       user_id: user.id,
@@ -112,11 +71,8 @@ export function usePontos() {
       setPontos(prev => {
         const lista = [...prev]
         const idx = lista.findIndex((p) => p.data === mapped.data)
-        if (idx >= 0) {
-          lista[idx] = mapped
-        } else {
-          lista.unshift(mapped)
-        }
+        if (idx >= 0) lista[idx] = mapped
+        else lista.unshift(mapped)
         return lista
       })
     }
@@ -124,22 +80,11 @@ export function usePontos() {
 
   const deletarPonto = useCallback(async (data) => {
     if (!user) return
-
-    if (!supabase) {
-      setPontos(prev => {
-        const lista = prev.filter((p) => p.data !== data)
-        lsSave(user.id, lista)
-        return lista
-      })
-      return
-    }
-
     await supabase
       .from('pontos')
       .delete()
       .eq('user_id', user.id)
       .eq('data', data)
-
     setPontos(prev => prev.filter((p) => p.data !== data))
   }, [user])
 
