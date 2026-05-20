@@ -20,9 +20,9 @@ const DIAS_SEMANA = [
 
 const INTERVALOS_PRESET = [
   { label: 'Sem intervalo', minutos: 0 },
-  { label: '30 min', minutos: 30 },
-  { label: '45 min', minutos: 45 },
+  { label: '30min', minutos: 30 },
   { label: '1h', minutos: 60 },
+  { label: '1h12', minutos: 72 },
   { label: '1h30', minutos: 90 },
 ]
 
@@ -40,6 +40,7 @@ export default function ConfigPage() {
   const [nome, setNome] = useState('')
   const [empresaNome, setEmpresaNome] = useState('')
   const [intervaloMinutos, setIntervaloMinutos] = useState(60)
+  const [intervaloSelecionado, setIntervaloSelecionado] = useState(60)
   const [diasTrabalho, setDiasTrabalho] = useState([1, 2, 3, 4, 5])
   const [horaEntradaPadrao, setHoraEntradaPadrao] = useState('08:00')
   const [horaSaidaPadrao, setHoraSaidaPadrao] = useState('17:00')
@@ -49,13 +50,15 @@ export default function ConfigPage() {
   const [lembretes, setLembretes] = useState(() => getConfig().lembretes || { ativo: false, entrada: '08:00', saida: '17:48' })
 
   useEffect(() => {
-    const config = getConfig()
-    setNome(config.nome || user?.email?.split('@')[0] || '')
-    setEmpresaNome(config.empresaNome || '')
-    setIntervaloMinutos(config.intervaloMinutos ?? 60)
-    setDiasTrabalho(config.diasTrabalho || [1, 2, 3, 4, 5])
-    setHoraEntradaPadrao(config.horaEntradaPadrao || '08:00')
-    setHoraSaidaPadrao(config.horaSaidaPadrao || '17:00')
+    const cfg = getConfig()
+    setNome(cfg.nome || user?.email?.split('@')[0] || '')
+    setEmpresaNome(cfg.empresaNome || '')
+    const intMin = cfg.intervaloMinutos ?? 60
+    setIntervaloMinutos(intMin)
+    setIntervaloSelecionado(INTERVALOS_PRESET.find(p => p.minutos === intMin)?.minutos ?? null)
+    setDiasTrabalho(cfg.diasTrabalho || [1, 2, 3, 4, 5])
+    setHoraEntradaPadrao(cfg.horaEntradaPadrao || '08:00')
+    setHoraSaidaPadrao(cfg.horaSaidaPadrao || '17:00')
   }, [user])
 
   const jornMin = calcularJornada(horaEntradaPadrao, horaSaidaPadrao, intervaloMinutos)
@@ -81,6 +84,30 @@ export default function ConfigPage() {
       prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia].sort()
     )
   }
+
+  function handleIntervaloChip(minutos) {
+    setIntervaloMinutos(minutos)
+    setIntervaloSelecionado(minutos)
+  }
+
+  function handleIntervaloHoras(val) {
+    const h = Math.max(0, Math.min(3, Number(val) || 0))
+    const m = intervaloMinutos % 60
+    const novo = h * 60 + m
+    setIntervaloMinutos(novo)
+    setIntervaloSelecionado(null)
+  }
+
+  function handleIntervaloMinutos(val) {
+    const m = Math.max(0, Math.min(59, Number(val) || 0))
+    const h = Math.floor(intervaloMinutos / 60)
+    const novo = h * 60 + m
+    setIntervaloMinutos(novo)
+    setIntervaloSelecionado(null)
+  }
+
+  const intHoras = Math.floor(intervaloMinutos / 60)
+  const intMins = intervaloMinutos % 60
 
   function salvar(e) {
     e.preventDefault()
@@ -160,19 +187,19 @@ export default function ConfigPage() {
           <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--space-2)' }}>
             Intervalo
           </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
             {INTERVALOS_PRESET.map((i) => (
               <button
                 key={i.minutos}
                 type="button"
-                onClick={() => setIntervaloMinutos(i.minutos)}
+                onClick={() => handleIntervaloChip(i.minutos)}
                 style={{
                   padding: 'var(--space-2) var(--space-3)',
                   borderRadius: 'var(--radius-pill)',
-                  border: `1.5px solid ${intervaloMinutos === i.minutos ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                  background: intervaloMinutos === i.minutos ? 'var(--color-accent-tonal)' : 'var(--color-surface)',
-                  color: intervaloMinutos === i.minutos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                  fontWeight: intervaloMinutos === i.minutos ? 600 : 400,
+                  border: `1.5px solid ${intervaloSelecionado === i.minutos ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                  background: intervaloSelecionado === i.minutos ? 'var(--color-accent-tonal)' : 'var(--color-surface)',
+                  color: intervaloSelecionado === i.minutos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                  fontWeight: intervaloSelecionado === i.minutos ? 600 : 400,
                   fontSize: 'var(--text-sm)',
                   cursor: 'pointer',
                   fontFamily: 'var(--font-native)',
@@ -182,6 +209,28 @@ export default function ConfigPage() {
                 {i.label}
               </button>
             ))}
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                label="Horas intervalo"
+                type="number"
+                min={0}
+                max={3}
+                value={intHoras}
+                onChange={(e) => handleIntervaloHoras(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Input
+                label="Minutos intervalo"
+                type="number"
+                min={0}
+                max={59}
+                value={intMins}
+                onChange={(e) => handleIntervaloMinutos(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
