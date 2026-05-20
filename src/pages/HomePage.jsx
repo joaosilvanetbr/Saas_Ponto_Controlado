@@ -1,34 +1,67 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { usePontos } from '../hooks/usePontos'
 import { useBancoHoras } from '../hooks/useBancoHoras'
 import { useTimer } from '../hooks/useTimer'
-import { calcularHorasTrabalhadas, calcularSaldoDia, minutosParaHHMM, minutosParaTexto, getConfig, calcularPrevisaoSaida, calcularSaldoParcial } from '../utils/calcHoras'
-import { diaMaisProdutivo, mediaSaldoUltimos30, sequenciaSemFalta } from '../utils/calcInsights'
+import {
+  calcularMinutosPorMarcacoes,
+  calcularSaldoDiaMarcacoes,
+  calcularJornadaPadraoMinutos,
+  estaTrabalhandoAgora,
+  getUltimaEntradaAberta,
+  minutosParaHHMM,
+  minutosParaTexto,
+  getConfig,
+  calcularHorasTrabalhadas,
+  calcularSaldoDia,
+} from '../utils/calcHoras'
 import AppLayout from '../components/Layout/AppLayout'
-import BaterPontoButton from '../components/Ponto/BaterPontoButton'
-import Card from '../components/UI/Card'
-import KPICard from '../components/UI/KPICard'
-import SaldoBadge from '../components/UI/SaldoBadge'
-import EmptyState from '../components/UI/EmptyState'
-import SkeletonCard from '../components/UI/SkeletonCard'
-import DayCard from '../components/Historico/DayCard'
-import InsightCard from '../components/UI/InsightCard'
+import LinhaDoTempo from '../components/Ponto/LinhaDoTempo'
+import BarraProgressoJornada from '../components/Ponto/BarraProgressoJornada'
 import BottomSheet from '../components/UI/BottomSheet'
+
+function somarDias(dataStr, dias) {
+  const d = new Date(dataStr + 'T12:00:00')
+  d.setDate(d.getDate() + dias)
+  return d.toISOString().slice(0, 10)
+}
+
+function formatarDataHeader(dataStr) {
+  return new Date(dataStr + 'T12:00:00').toLocaleDateString('pt-BR', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+  })
+}
 
 function dataHoje() {
   const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 function horaAgora() {
-  const d = new Date()
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-function dataExtenso() {
-  return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+function RelogioAgora() {
+  const [hora, setHora] = useState(
+    new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  )
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHora(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <span style={{
+      fontSize: 'var(--text-xl)',
+      fontWeight: 700,
+      color: 'var(--color-text)',
+      letterSpacing: '0.04em',
+    }}>
+      {hora}
+    </span>
+  )
 }
 
 export default function HomePage() {
@@ -36,121 +69,160 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { pontos, getPontoDoDia, salvarPonto, getPontosDoMes } = usePontos()
   const hoje = dataHoje()
-  const pontoHoje = getPontoDoDia(hoje)
+  const [dataSelecionada, setDataSelecionada] = useState(hoje)
+  const ehHoje = dataSelecionada === hoje
+  const pontoAtual = getPontoDoDia(dataSelecionada)
+  const marcacoes = pontoAtual?.marcacoes || []
+
   const [config, setConfig] = useState({
     jornadaMinutos: 480,
-    intervaloMinutos: 60,
+    jornadaPadrao: [
+      { tipo: 'entrada', hora: '08:00' },
+      { tipo: 'saida', hora: '12:00' },
+      { tipo: 'entrada', hora: '13:00' },
+      { tipo: 'saida', hora: '17:00' },
+    ],
     empresaNome: '',
     diasTrabalho: [1, 2, 3, 4, 5],
-    horaEntradaPadrao: '08:00',
-    horaSaidaPadrao: '17:00'
   })
+
   useEffect(() => {
     if (!user) return
     getConfig(user.id).then(cfg => { if (cfg) setConfig(cfg) })
   }, [user])
 
+  const jornadaMin = calcularJornadaPadraoMinutos(config.jornadaPadrao)
   const agora = new Date()
   const pontosDoMes = getPontosDoMes(agora.getFullYear(), agora.getMonth())
   const { saldoMes } = useBancoHoras(pontosDoMes, config)
 
-  const [msg, setMsg] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [avisoSaida, setAvisoSaida] = useState(false)
+  const entradaAberta = ehHoje ? getUltimaEntradaAberta(marcacoes) : null
+  const minutosTimer = useTimer(entradaAberta)
+  const trabalhando = ehHoje && estaTrabalhandoAgora(marcacoes)
+
+  const minutosHoje = calcularMinutosPorMarcacoes(marcacoes) + (trabalhando ? minutosTimer : 0)
+  const saldoDia = calcularSaldoDiaMarcacoes(marcacoes, jornadaMin)
+
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetHora, setSheetHora] = useState('')
+  const [msg, setMsg] = useState('')
 
-  const minutosTrabalhandoHoje = useTimer(
-    pontoHoje?.entrada1 && !pontoHoje?.saida1 ? pontoHoje.entrada1 : null
-  )
-
-  const previsaoSaida = pontoHoje?.entrada1 && !pontoHoje?.saida1
-    ? calcularPrevisaoSaida(pontoHoje.entrada1, config.jornadaMinutos, config.intervaloMinutos)
-    : null
-
-  const saldoParcial = pontoHoje?.entrada1 && !pontoHoje?.saida1
-    ? calcularSaldoParcial(minutosTrabalhandoHoje, config.jornadaMinutos)
-    : null
-
-  function proximoCampo(ponto) {
-    if (!ponto) return 'entrada1'
-    if (!ponto.entrada1) return 'entrada1'
-    if (!ponto.saida1) return 'saida1'
-    if (!ponto.entrada2) return 'entrada2'
-    if (!ponto.saida2) return 'saida2'
-    return null
+  function proximoTipo() {
+    if (marcacoes.length === 0) return 'entrada'
+    return marcacoes[marcacoes.length - 1].tipo === 'entrada' ? 'saida' : 'entrada'
   }
 
-  function getTipoBotao(ponto) {
-    const campo = proximoCampo(ponto)
-    if (!campo) return 'entrada'
-    if (campo === 'entrada1' || campo === 'entrada2') return 'entrada'
-    return 'saida'
-  }
-
-  function abrirSheetPonto() {
-    const campo = proximoCampo(pontoHoje)
-    if (!campo) {
-      setMsg('Jornada de hoje completa (4 registros)')
-      setTimeout(() => setMsg(''), 3000)
-      return
-    }
+  function abrirSheet() {
     setSheetHora(horaAgora())
     setSheetOpen(true)
   }
 
-  function confirmarPonto() {
+  async function confirmarPonto() {
     if (!sheetHora) return
-    const campo = proximoCampo(pontoHoje)
-    if (!campo) return
-
-    setLoading(true)
-    const dados = {
-      user_id: user.id,
-      data: hoje,
+    const tipo = proximoTipo()
+    const novas = [...marcacoes, { tipo, hora: sheetHora }]
+    await salvarPonto({
+      ...(pontoAtual || {}),
+      data: dataSelecionada,
       tipo: 'registro',
-      [campo]: sheetHora,
-    }
-
-    salvarPonto(dados)
-    setLoading(false)
+      marcacoes: novas,
+    })
     setSheetOpen(false)
-    setMsg(`${campo === 'entrada1' || campo === 'entrada2' ? 'Entrada' : 'Saída'} registrada às ${sheetHora}`)
+    const label = tipo === 'entrada' ? '✅ Entrada' : '✅ Saída'
+    setMsg(`${label} registrada às ${sheetHora}`)
     setTimeout(() => setMsg(''), 3000)
   }
 
-  useEffect(() => {
-    const campo = proximoCampo(pontoHoje)
-    if (campo && campo.startsWith('saida')) {
-      const timer = setTimeout(() => setAvisoSaida(true), 5000)
-      return () => clearTimeout(timer)
-    }
-    setAvisoSaida(false)
-  }, [pontoHoje])
+  async function editarMarcacao(index, novaHora) {
+    const novas = marcacoes.map((m, i) => i === index ? { ...m, hora: novaHora } : m)
+    await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
+  }
 
-  const horasTrabalhadas = pontoHoje ? calcularHorasTrabalhadas(pontoHoje) : 0
-  const saldoDia = pontoHoje ? calcularSaldoDia(pontoHoje, config.jornadaMinutos, config.intervaloMinutos || 0) : -config.jornadaMinutos
-
-  const pontosAnteriores = pontos
-    .filter((p) => p.data !== hoje)
-    .sort((a, b) => b.data.localeCompare(a.data))
-    .slice(0, 5)
-
-  const recentes = pontosAnteriores.length > 0
-    ? pontosAnteriores
-    : pontos
-        .filter((p) => p.data === hoje && p.entrada1)
-        .sort((a, b) => b.data.localeCompare(a.data))
-        .slice(0, 5)
-
-  const diaProd = diaMaisProdutivo(pontos, config.jornadaMinutos, config.intervaloMinutos)
-  const mediaSaldo = mediaSaldoUltimos30(pontos, config.jornadaMinutos, config.intervaloMinutos)
-  const sequencia = sequenciaSemFalta(pontos)
-
-  const ehSaida = getTipoBotao(pontoHoje) === 'saida'
+  async function removerMarcacao(index) {
+    const novas = marcacoes.filter((_, i) => i !== index)
+    await salvarPonto({ ...(pontoAtual || {}), data: dataSelecionada, tipo: 'registro', marcacoes: novas })
+  }
 
   return (
-    <AppLayout title="Hoje">
+    <AppLayout
+      header={
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          paddingTop: 'calc(var(--safe-top) + 10px)',
+          paddingBottom: '10px',
+          paddingLeft: 'var(--space-4)',
+          paddingRight: 'var(--space-4)',
+        }}>
+          <button
+            onClick={() => setDataSelecionada(d => somarDias(d, -1))}
+            style={{
+              background: 'none', border: 'none', color: 'var(--color-text)',
+              fontSize: 22, cursor: 'pointer', padding: 'var(--space-2)',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            ‹
+          </button>
+
+          <div style={{ textAlign: 'center' }}>
+            <p style={{
+              margin: 0, fontSize: 'var(--text-base)', fontWeight: 600,
+              color: 'var(--color-text)', textTransform: 'capitalize',
+            }}>
+              {formatarDataHeader(dataSelecionada)}
+            </p>
+            {config.empresaNome && (
+              <p style={{
+                margin: 0, fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+              }}>
+                {config.empresaNome}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => !ehHoje && setDataSelecionada(d => somarDias(d, 1))}
+            style={{
+              background: 'none', border: 'none',
+              color: ehHoje ? 'var(--color-text-faint)' : 'var(--color-text)',
+              fontSize: 22, cursor: ehHoje ? 'default' : 'pointer',
+              padding: 'var(--space-2)',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            ›
+          </button>
+        </div>
+      }
+      footerExtra={
+        ehHoje && (
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <RelogioAgora />
+            <button
+              onClick={abrirSheet}
+              style={{
+                background: 'var(--color-accent)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: 48, height: 48,
+                fontSize: 22,
+                cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(232,84,26,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              ⊕
+            </button>
+          </div>
+        )
+      }
+    >
       {msg && (
         <div style={{
           marginBottom: 'var(--space-4)',
@@ -165,273 +237,99 @@ export default function HomePage() {
         </div>
       )}
 
-      {avisoSaida && pontoHoje && (pontoHoje.entrada1 && !pontoHoje.saida1 || pontoHoje.entrada2 && !pontoHoje.saida2) && (
-        <div style={{
-          marginBottom: 'var(--space-4)',
-          background: 'var(--color-warning-bg)',
-          border: '1px solid var(--color-warning)',
-          color: 'var(--color-warning)',
-          fontSize: 'var(--text-sm)',
-          padding: 'var(--space-3)',
-          borderRadius: 'var(--radius-md)',
-        }}>
-          <span style={{ fontWeight: 600 }}>⚠️ Atenção</span>
-          <span style={{ display: 'block', marginTop: '2px', fontSize: 'var(--text-xs)' }}>
-            Você registrou entrada mas ainda não registrou a saída.
-          </span>
+      {/* KPIs INLINE */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
+        marginBottom: 'var(--space-4)',
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-lg)',
+        padding: 'var(--space-3) 0',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>Trab. no dia</p>
+          <p style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
+            {minutosParaHHMM(minutosHoje)}
+          </p>
         </div>
-      )}
-
-      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)', textTransform: 'capitalize' }}>
-        {dataExtenso()}
-      </p>
-
-      <div style={{ marginBottom: 'var(--space-4)' }}>
-        <BaterPontoButton tipo={getTipoBotao(pontoHoje)} onPress={abrirSheetPonto} loading={loading} />
+        <div style={{ background: 'var(--color-divider)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>Saldo do dia</p>
+          <p style={{
+            fontSize: 'var(--text-base)', fontWeight: 700,
+            color: saldoDia >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+            margin: 0,
+          }}>
+            {saldoDia >= 0 ? '+' : ''}{minutosParaHHMM(saldoDia)}
+          </p>
+        </div>
+        <div style={{ background: 'var(--color-divider)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>Banco horas</p>
+          <p style={{
+            fontSize: 'var(--text-base)', fontWeight: 700,
+            color: saldoMes >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+            margin: 0,
+          }}>
+            {saldoMes >= 0 ? '+' : ''}{minutosParaTexto(Math.abs(saldoMes))}
+          </p>
+        </div>
       </div>
 
-      {/* SALDO DESTAQUE */}
-      {(() => {
-        const { jornadaMinutos, intervaloMinutos } = config
-        let saldoMin = 0
-        if (pontoHoje?.entrada1 && pontoHoje?.saida1) {
-          const [eh, em] = pontoHoje.entrada1.split(':').map(Number)
-          const [sh, sm] = pontoHoje.saida1.split(':').map(Number)
-          const totalMin = (sh * 60 + sm) - (eh * 60 + em)
-          const intervalo = pontoHoje?.entrada2 ? 0 : (intervaloMinutos || 0)
-          saldoMin = totalMin - intervalo - jornadaMinutos
-        }
-        if (pontoHoje?.entrada2 && pontoHoje?.saida2) {
-          const [eh2, em2] = pontoHoje.entrada2.split(':').map(Number)
-          const [sh2, sm2] = pontoHoje.saida2.split(':').map(Number)
-          saldoMin += (sh2 * 60 + sm2) - (eh2 * 60 + em2)
-        }
-        const positivo = saldoMin >= 0
-        const cor = positivo ? 'var(--color-success)' : 'var(--color-danger)'
-        const bgCor = positivo ? 'var(--color-success-bg)' : 'var(--color-danger-bg)'
+      {/* BARRA DE PROGRESSO */}
+      <div style={{ marginBottom: 'var(--space-5)' }}>
+        <BarraProgressoJornada
+          minutosFeitos={minutosHoje}
+          jornadaMinutos={jornadaMin || config.jornadaMinutos}
+        />
+      </div>
 
-        return (
-          <div style={{
-            textAlign: 'center',
-            padding: 'var(--space-5) var(--space-4) var(--space-3)',
-          }}>
-            {pontoHoje?.entrada1 && !pontoHoje?.saida1 && (
-              <>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginBottom: 'var(--space-3)',
-                }}>
+      {/* LINHA DO TEMPO */}
+      <LinhaDoTempo
+        marcacoes={marcacoes.map(m => ({ ...m, real: true }))}
+        jornadaPadrao={config.jornadaPadrao || []}
+        onEditar={editarMarcacao}
+        onRemover={removerMarcacao}
+      />
 
-                  {/* Badge timer */}
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                    background: 'var(--color-surface-tonal)',
-                    borderRadius: 'var(--radius-pill)',
-                    padding: 'var(--space-1) var(--space-3)',
-                  }}>
-                    <span style={{
-                      width: 8, height: 8, borderRadius: '50%',
-                      background: 'var(--color-accent)',
-                      animation: 'pulse 1.5s ease-in-out infinite',
-                      display: 'inline-block',
-                    }} />
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                      trabalhando há {minutosParaTexto(minutosTrabalhandoHoje)}
-                    </span>
-                  </div>
-
-                  {/* Previsão de saída */}
-                  {previsaoSaida && (
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)',
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--color-text-muted)',
-                    }}>
-                      <span>🏁</span>
-                      <span>Previsão de saída: <strong style={{ color: 'var(--color-text)' }}>{previsaoSaida}</strong></span>
-                    </div>
-                  )}
-
-                  {/* Saldo parcial em tempo real */}
-                  {saldoParcial !== null && (
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)',
-                      fontSize: 'var(--text-xs)',
-                      color: saldoParcial >= 0 ? 'var(--color-success)' : 'var(--color-text-muted)',
-                    }}>
-                      <span>{saldoParcial >= 0 ? '📈' : '⏳'}</span>
-                      <span>
-                        {saldoParcial >= 0
-                          ? `+${minutosParaTexto(saldoParcial)} acima da jornada`
-                          : `faltam ${minutosParaTexto(Math.abs(saldoParcial))} para completar`
-                        }
-                      </span>
-                    </div>
-                  )}
-
-                </div>
-              </>
-            )}
-
-            {pontoHoje?.entrada1 && pontoHoje?.saida1 && (
-              <div style={{
-                background: bgCor,
-                borderRadius: 'var(--radius-xl)',
-                padding: 'var(--space-4) var(--space-6)',
-                display: 'inline-block',
-                marginBottom: 'var(--space-3)',
-              }}>
-                <p style={{ fontSize: 'var(--text-xs)', color: cor, fontWeight: 600,
-                  textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-                  saldo hoje
-                </p>
-                <p style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: cor, margin: 0, lineHeight: 1.1 }}>
-                  {positivo ? '+' : ''}{minutosParaTexto(Math.abs(saldoMin))}
-                </p>
-              </div>
-            )}
-          </div>
-        )
-      })()}
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.5; transform: scale(1.3); }
-        }
-      `}</style>
-
-      <Card style={{ marginBottom: 'var(--space-4)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
-          <KPICard label="Entrada" value={pontoHoje?.entrada1 || '—'} />
-          <KPICard label="Saída" value={pontoHoje?.saida1 || '—'} />
-          <KPICard label="Horas Hoje" value={minutosParaHHMM(horasTrabalhadas)} />
-          <KPICard label="Saldo Hoje" value={minutosParaTexto(saldoDia)} positive={saldoDia >= 0} />
-        </div>
-
-        <div style={{ borderTop: '1px solid var(--color-divider)', margin: 'var(--space-2) 0' }} />
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Saldo do Mês</span>
-          <SaldoBadge minutos={saldoMes} formatter={minutosParaTexto} />
-        </div>
-      </Card>
-
-      <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text)', marginBottom: 'var(--space-3)' }}>
-        Últimos registros
-      </h2>
-
-      {recentes.length === 0 ? (
-        <EmptyState icon="📋" title="Nenhum registro" message="Bata o ponto para começar" />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          {recentes.map((ponto) => (
-            <DayCard
-              key={ponto.data}
-              ponto={ponto}
-              saldoMinutos={calcularSaldoDia(ponto, config.jornadaMinutos, config.intervaloMinutos || 0)}
-              horasFormatadas={minutosParaHHMM(calcularHorasTrabalhadas(ponto))}
-              formatter={minutosParaTexto}
-            />
-          ))}
-        </div>
-      )}
-
-      {(diaProd || mediaSaldo !== null || sequencia > 0) && (
-        <>
-          <h2 style={{
-            fontSize: 'var(--text-lg)',
-            fontWeight: 600,
-            color: 'var(--color-text)',
-            marginTop: 'var(--space-6)',
-            marginBottom: 'var(--space-3)'
-          }}>
-            Seus padrões
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {diaProd && (
-              <InsightCard
-                icon="📅"
-                label="Dia mais produtivo"
-                value={diaProd}
-              />
-            )}
-            {mediaSaldo !== null && (
-              <InsightCard
-                icon={mediaSaldo >= 0 ? '📈' : '📉'}
-                label="Média de saldo (últimos 30 dias)"
-                value={minutosParaTexto(mediaSaldo)}
-                color={mediaSaldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}
-              />
-            )}
-            {sequencia > 1 && (
-              <InsightCard
-                icon="🔥"
-                label="Sequência sem faltas"
-                value={`${sequencia} dias`}
-                color="var(--color-accent)"
-              />
-            )}
-          </div>
-        </>
-      )}
-
+      {/* BOTTOM SHEET CONFIRMAR PONTO */}
       <BottomSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title={ehSaida ? '🌅 Registrar Saída' : '⏱ Registrar Entrada'}
+        title={proximoTipo() === 'saida' ? '🌅 Registrar Saída' : '⏱ Registrar Entrada'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <div>
-            <label style={{
-              display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600,
-              color: 'var(--color-text-muted)', textTransform: 'uppercase',
-              letterSpacing: '0.06em', marginBottom: 'var(--space-2)',
-            }}>
-              {ehSaida ? 'Hora de saída' : 'Hora de entrada'}
-            </label>
-            <input
-              type="time"
-              value={sheetHora}
-              onChange={e => setSheetHora(e.target.value)}
-              style={{
-                width: '100%', padding: 'var(--space-3) var(--space-4)',
-                fontSize: 'var(--text-xl)', fontWeight: 700, textAlign: 'center',
-                background: 'var(--color-surface-2)',
-                color: 'var(--color-text)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-lg)',
-                outline: 'none',
-              }}
-            />
-          </div>
-
+          <input
+            type="time"
+            value={sheetHora}
+            onChange={e => setSheetHora(e.target.value)}
+            style={{
+              width: '100%', padding: 'var(--space-3) var(--space-4)',
+              fontSize: 'var(--text-xl)', fontWeight: 700, textAlign: 'center',
+              background: 'var(--color-surface-2)', color: 'var(--color-text)',
+              border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)',
+              outline: 'none',
+            }}
+          />
           <button
             onClick={confirmarPonto}
             disabled={!sheetHora}
             style={{
               width: '100%', padding: 'var(--space-4)',
               background: sheetHora ? 'var(--color-accent)' : 'var(--color-divider)',
-              color: 'var(--color-accent-on)',
-              borderRadius: 'var(--radius-lg)', border: 'none',
+              color: 'white', borderRadius: 'var(--radius-lg)', border: 'none',
               fontSize: 'var(--text-base)', fontWeight: 700,
               cursor: sheetHora ? 'pointer' : 'not-allowed',
-              boxShadow: sheetHora ? '0 4px 16px rgba(232,84,26,0.35)' : 'none',
             }}
           >
             Confirmar
           </button>
-
           <button
             onClick={() => { setSheetOpen(false); navigate('/lancamento') }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)',
-              textAlign: 'center', padding: 'var(--space-2)',
-              textDecoration: 'underline',
+              textAlign: 'center', textDecoration: 'underline',
             }}
           >
             Lançar falta, feriado ou correção →

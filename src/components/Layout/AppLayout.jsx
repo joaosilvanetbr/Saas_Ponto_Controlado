@@ -13,7 +13,7 @@ const LOGO_SVG = (
   </svg>
 )
 
-export default function AppLayout({ title, children }) {
+export default function AppLayout({ title, children, header, footerExtra }) {
   const [isDark, setIsDark] = useState(
     typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
@@ -27,19 +27,21 @@ export default function AppLayout({ title, children }) {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  const s = styles(isDark)
+  const s = styles(isDark, !!footerExtra)
 
   return (
     <div style={s.layout}>
-      <header style={s.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          {LOGO_SVG}
-          <div>
-            <p style={s.appName}>PontoControlado</p>
-            <h1 style={s.pageTitle}>{title}</h1>
+      {header ? header : (
+        <header style={s.header}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            {LOGO_SVG}
+            <div>
+              <p style={s.appName}>PontoControlado</p>
+              <h1 style={s.pageTitle}>{title}</h1>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
       {isOffline && (
         <div style={{
           background: 'var(--color-warning)',
@@ -54,17 +56,24 @@ export default function AppLayout({ title, children }) {
         </div>
       )}
       <main style={s.main}>{children}</main>
+      {footerExtra && (
+        <div style={s.footerExtra}>
+          {footerExtra}
+        </div>
+      )}
     </div>
   )
 }
 
-function styles(isDark) {
+function styles(isDark, hasFooterExtra) {
   return {
     layout: {
       minHeight: '100dvh',
       background: 'var(--color-bg)',
       fontFamily: 'var(--font-native)',
-      paddingBottom: 'calc(72px + var(--safe-bottom))',
+      paddingBottom: hasFooterExtra
+        ? 'calc(120px + var(--safe-bottom))'
+        : 'calc(72px + var(--safe-bottom))',
     },
     header: {
       position: 'sticky',
@@ -103,6 +112,16 @@ function styles(isDark) {
       paddingTop: 'var(--space-4)',
       maxWidth: '480px',
       margin: '0 auto',
+    },
+    footerExtra: {
+      position: 'fixed',
+      bottom: 'calc(72px + var(--safe-bottom))',
+      left: 0,
+      right: 0,
+      background: 'var(--color-bg)',
+      borderTop: '1px solid var(--color-divider)',
+      padding: 'var(--space-3) var(--space-4)',
+      zIndex: 90,
     },
   }
 }

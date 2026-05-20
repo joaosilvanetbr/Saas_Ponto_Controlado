@@ -4,6 +4,7 @@ import { usePontos } from '../hooks/usePontos'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useMesesFechados } from '../hooks/useMesesFechados'
 import { calcularHorasTrabalhadas, minutosParaHHMM } from '../utils/calcHoras'
+import MarcacoesEditor from '../components/UI/MarcacoesEditor'
 import AppLayout from '../components/Layout/AppLayout'
 import Card from '../components/UI/Card'
 import Input from '../components/UI/Input'
@@ -31,11 +32,7 @@ export default function LancamentoPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [existente, setExistente] = useState(null)
-
-  const [entrada1, setEntrada1] = useState('')
-  const [saida1, setSaida1] = useState('')
-  const [entrada2, setEntrada2] = useState('')
-  const [saida2, setSaida2] = useState('')
+  const [marcacoes, setMarcacoes] = useState([])
 
   const precisaHoras = tipo === 'extra_pago' || tipo === 'extra_banco'
   const isCorrecao = tipo === 'correcao'
@@ -48,15 +45,9 @@ export default function LancamentoPage() {
       const reg = getPontoDoDia(data)
       setExistente(reg)
       if (reg) {
-        setEntrada1(reg.entrada1 || '')
-        setSaida1(reg.saida1 || '')
-        setEntrada2(reg.entrada2 || '')
-        setSaida2(reg.saida2 || '')
+        setMarcacoes(reg.marcacoes || [])
       } else {
-        setEntrada1('')
-        setSaida1('')
-        setEntrada2('')
-        setSaida2('')
+        setMarcacoes([])
       }
     }
   }, [data, isCorrecao])
@@ -93,10 +84,10 @@ export default function LancamentoPage() {
       }
 
       if (isCorrecao) {
-        if (entrada1) dados.entrada1 = entrada1
-        if (saida1) dados.saida1 = saida1
-        if (entrada2) dados.entrada2 = entrada2
-        if (saida2) dados.saida2 = saida2
+        dados.marcacoes = marcacoes
+        if (marcacoes[0]?.tipo === 'entrada') dados.entrada1 = marcacoes[0].hora
+        const saida1 = marcacoes.find((m, i) => m.tipo === 'saida' && i > 0)
+        if (saida1) dados.saida1 = saida1.hora
       }
 
       const existente = getPontoDoDia(data)
@@ -117,6 +108,7 @@ export default function LancamentoPage() {
       setHoras('')
       setObs('')
       setExistente(null)
+      setMarcacoes([])
     } catch (err) {
       setError(err.message || 'Erro ao salvar')
     } finally {
@@ -181,12 +173,11 @@ export default function LancamentoPage() {
           </div>
 
           {isCorrecao && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
-              <Input label="Entrada 1" type="time" value={entrada1} onChange={(e) => setEntrada1(e.target.value)} />
-              <Input label="Saída 1" type="time" value={saida1} onChange={(e) => setSaida1(e.target.value)} />
-              <Input label="Entrada 2 (opcional)" type="time" value={entrada2} onChange={(e) => setEntrada2(e.target.value)} />
-              <Input label="Saída 2 (opcional)" type="time" value={saida2} onChange={(e) => setSaida2(e.target.value)} />
-            </div>
+            <MarcacoesEditor
+              value={marcacoes}
+              onChange={setMarcacoes}
+              jornadaPadrao={[]}
+            />
           )}
 
           {precisaHoras && (

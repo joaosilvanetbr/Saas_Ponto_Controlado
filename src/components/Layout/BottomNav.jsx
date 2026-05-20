@@ -29,7 +29,7 @@ const ICONS = {
 }
 
 const TABS = [
-  { to: '/', label: 'Início', icon: 'casa' },
+  { to: '/', label: 'Dia', icon: 'calendario' },
   { to: '/historico', label: 'Histórico', icon: 'calendario' },
   { to: '/relatorios', label: 'Relatórios', icon: 'grafico' },
   { to: '/config', label: 'Config', icon: 'engrenagem' },

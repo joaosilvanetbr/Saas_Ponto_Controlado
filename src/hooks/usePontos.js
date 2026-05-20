@@ -90,5 +90,24 @@ export function usePontos() {
     setPontos(prev => prev.filter((p) => p.data !== data))
   }, [user])
 
-  return { pontos, loading, getPontoDoDia, getPontosDoMes, salvarPonto, deletarPonto }
+  const baterPonto = useCallback(async (tipo) => {
+    if (!user) return
+    const hoje = new Date().toISOString().slice(0, 10)
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    const pontoDoDia = getPontoDoDia(hoje)
+    const marcacoesAtuais = pontoDoDia?.marcacoes || []
+    const novasMarcacoes = [...marcacoesAtuais, { tipo, hora }]
+
+    await salvarPonto({
+      data: hoje,
+      tipo: 'registro',
+      marcacoes: novasMarcacoes,
+      entrada1: pontoDoDia?.entrada1 || '',
+      saida1: pontoDoDia?.saida1 || '',
+      entrada2: pontoDoDia?.entrada2 || '',
+      saida2: pontoDoDia?.saida2 || '',
+    })
+  }, [user, getPontoDoDia, salvarPonto])
+
+  return { pontos, loading, getPontoDoDia, getPontosDoMes, salvarPonto, baterPonto, deletarPonto }
 }
