@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Ponto Fácil',
+        name: 'PontoControlado',
         short_name: 'Ponto',
-        description: 'Controle seu banco de horas com facilidade',
+        description: 'Controle seu banco de horas — PontoControlado',
         theme_color: '#1A6B45',
         background_color: '#F4F4EF',
         display: 'standalone',

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useOffline } from '../../hooks/useOffline'
 
 const LOGO_SVG = (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="Ponto Fácil">
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="PontoControlado">
     <circle cx="16" cy="16" r="16" fill="var(--color-accent)"/>
     <circle cx="16" cy="16" r="6" stroke="white" strokeWidth="1.5" fill="none"/>
     <path d="M16 13v3l2 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
@@ -35,7 +35,7 @@ export default function AppLayout({ title, children }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           {LOGO_SVG}
           <div>
-            <p style={s.appName}>Ponto Fácil</p>
+            <p style={s.appName}>PontoControlado</p>
             <h1 style={s.pageTitle}>{title}</h1>
           </div>
         </div>
