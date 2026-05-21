@@ -22,20 +22,22 @@ export function useMesesFechados() {
 
   const fecharMes = useCallback(async (anoMes) => {
     if (!user) return
-    setMeses(prev => prev.includes(anoMes) ? prev : [...prev, anoMes])
-    await supabase
+    const { error } = await supabase
       .from('meses_fechados')
-      .upsert({ user_id: user.id, ano_mes: anoMes }, { onConflict: 'user_id,ano_mes' })
+      .upsert({ user_id: user.id, ano_mes: anoMes, fechado_em: new Date().toISOString() }, { onConflict: 'user_id,ano_mes' })
+    if (error) throw new Error(error.message || 'Erro ao fechar mês')
+    setMeses(prev => prev.includes(anoMes) ? prev : [...prev, anoMes])
   }, [user])
 
   const reabrirMes = useCallback(async (anoMes) => {
     if (!user) return
-    setMeses(prev => prev.filter(m => m !== anoMes))
-    await supabase
+    const { error } = await supabase
       .from('meses_fechados')
       .delete()
       .eq('user_id', user.id)
       .eq('ano_mes', anoMes)
+    if (error) throw new Error(error.message || 'Erro ao reabrir mês')
+    setMeses(prev => prev.filter(m => m !== anoMes))
   }, [user])
 
   const isMesFechado = useCallback((anoMes) => {

@@ -91,6 +91,11 @@ export function usePontos() {
       updated_at: new Date().toISOString(),
     }
 
+    // Remove campos undefined/null para o Supabase usar defaults do banco
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === undefined || payload[key] === '') delete payload[key]
+    })
+
     const { data, error } = await supabase
       .from('pontos')
       .upsert(payload, { onConflict: 'user_id,data' })
@@ -139,10 +144,10 @@ export function usePontos() {
       data: hoje,
       tipo: 'registro',
       marcacoes: novasMarcacoes,
-      entrada1: pontoDoDia?.entrada1 || '',
-      saida1: pontoDoDia?.saida1 || '',
-      entrada2: pontoDoDia?.entrada2 || '',
-      saida2: pontoDoDia?.saida2 || '',
+      entrada1: pontoDoDia?.entrada1 || null,
+      saida1: pontoDoDia?.saida1 || null,
+      entrada2: pontoDoDia?.entrada2 || null,
+      saida2: pontoDoDia?.saida2 || null,
     })
   }, [user, getPontoDoDia, salvarPonto])
 
