@@ -178,7 +178,7 @@ export default function HomePage() {
 
   return (
     <AppLayout
-      header={
+header={
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           paddingTop: 'calc(var(--safe-top) + 10px)',
@@ -235,10 +235,11 @@ export default function HomePage() {
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            ⊕
+            +
           </button>
         </div>
-      >
+      }
+    >
       {msg && (
         <div style={{
           marginBottom: 'var(--space-4)',
