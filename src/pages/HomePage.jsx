@@ -205,8 +205,8 @@ export default function HomePage() {
               {formatarDataHeader(dataSelecionada)}
             </p>
             <p style={{
-              margin: '4px 0 0', fontSize: 'var(--text-xs)', fontWeight: 700,
-              color: 'var(--color-accent)', letterSpacing: '0.06em',
+              margin: '4px 0 0', fontSize: 'var(--text-sm)', fontWeight: 700,
+              color: 'var(--color-accent)', letterSpacing: '0.04em',
             }}>
               {horaAgora().slice(0,5)}
             </p>
@@ -221,43 +221,24 @@ export default function HomePage() {
           </div>
 
           <button
-            onClick={() => !ehHoje && setDataSelecionada(d => somarDias(d, 1))}
+            onClick={abrirSheet}
             style={{
-              background: 'none', border: 'none',
-              color: ehHoje ? 'var(--color-text-faint)' : 'var(--color-text)',
-              fontSize: 22, cursor: ehHoje ? 'default' : 'pointer',
-              padding: 'var(--space-2)',
+              background: 'var(--color-accent)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: 52, height: 52,
+              fontSize: 24,
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(232,84,26,0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            ›
+            ⊕
           </button>
         </div>
-      }
-      footerExtra={
-        ehHoje && (
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={abrirSheet}
-              style={{
-                background: 'var(--color-accent)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: 56, height: 56,
-                fontSize: 26,
-                cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(232,84,26,0.5)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              ⊕
-            </button>
-          </div>
-        )
-      }
-    >
+      >
       {msg && (
         <div style={{
           marginBottom: 'var(--space-4)',
