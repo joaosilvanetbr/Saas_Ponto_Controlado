@@ -4,18 +4,24 @@ export function useNotificacoes() {
 
   const pedirPermissao = useCallback(async () => {
     if (!('Notification' in window)) return 'unsupported'
-    if (Notification.permission === 'granted') return 'granted'
-    const result = await Notification.requestPermission()
-    return result
+    try {
+      if (Notification.permission === 'granted') return 'granted'
+      const result = await Notification.requestPermission()
+      return result
+    } catch {
+      return 'unsupported'
+    }
   }, [])
 
   const enviarNotificacao = useCallback((titulo, corpo) => {
-    if (Notification.permission !== 'granted') return
-    new Notification(titulo, {
-      body: corpo,
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
-    })
+    try {
+      if (Notification.permission !== 'granted') return
+      new Notification(titulo, {
+        body: corpo,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+      })
+    } catch {}
   }, [])
 
   const verificarLembrete = useCallback((lembretes) => {

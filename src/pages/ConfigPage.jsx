@@ -36,7 +36,9 @@ export default function ConfigPage() {
   const [jornadaPadrao, setJornadaPadrao] = useState(JORNADA_DEFAULT)
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
-  const [permissao, setPermissao] = useState(Notification?.permission || 'default')
+  const [permissao, setPermissao] = useState(() => {
+    try { return Notification.permission } catch { return 'unsupported' }
+  })
   const [lembretes, setLembretes] = useState({ ativo: false, entrada: '08:00', saida: '17:48' })
 
   useEffect(() => {
