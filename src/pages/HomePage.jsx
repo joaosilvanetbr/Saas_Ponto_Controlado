@@ -204,9 +204,15 @@ export default function HomePage() {
             }}>
               {formatarDataHeader(dataSelecionada)}
             </p>
+            <p style={{
+              margin: '4px 0 0', fontSize: 'var(--text-xs)', fontWeight: 700,
+              color: 'var(--color-accent)', letterSpacing: '0.06em',
+            }}>
+              {horaAgora().slice(0,5)}
+            </p>
             {config.empresaNome && (
               <p style={{
-                margin: 0, fontSize: 'var(--text-xs)',
+                margin: '4px 0 0', fontSize: 'var(--text-xs)',
                 color: 'var(--color-text-muted)',
               }}>
                 {config.empresaNome}
@@ -230,11 +236,7 @@ export default function HomePage() {
       }
       footerExtra={
         ehHoje && (
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between',
-          }}>
-            <RelogioAgora />
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             <button
               onClick={abrirSheet}
               style={{
@@ -242,10 +244,10 @@ export default function HomePage() {
                 color: 'white',
                 border: 'none',
                 borderRadius: '50%',
-                width: 48, height: 48,
-                fontSize: 22,
+                width: 56, height: 56,
+                fontSize: 26,
                 cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(232,84,26,0.4)',
+                boxShadow: '0 4px 20px rgba(232,84,26,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 WebkitTapHighlightColor: 'transparent',
               }}
