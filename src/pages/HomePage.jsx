@@ -221,21 +221,16 @@ header={
           </div>
 
           <button
-            onClick={abrirSheet}
+            onClick={() => !ehHoje && setDataSelecionada(d => somarDias(d, 1))}
             style={{
-              background: 'var(--color-accent)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: 52, height: 52,
-              fontSize: 24,
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(232,84,26,0.5)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'none', border: 'none',
+              color: ehHoje ? 'var(--color-text-faint)' : 'var(--color-text)',
+              fontSize: 22, cursor: ehHoje ? 'default' : 'pointer',
+              padding: 'var(--space-2)',
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            +
+            ›
           </button>
         </div>
       }
@@ -252,6 +247,31 @@ header={
         }}>
           {msg}
         </div>
+      )}
+
+      {/* FAB */}
+      {ehHoje && (
+        <button
+          onClick={abrirSheet}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(72px + var(--safe-bottom) + 12px)',
+            right: 'var(--space-4)',
+            background: 'var(--color-accent)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: 56, height: 56,
+            fontSize: 26,
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(232,84,26,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            WebkitTapHighlightColor: 'transparent',
+            zIndex: 100,
+          }}
+        >
+          +
+        </button>
       )}
 
       {/* KPIs INLINE */}
