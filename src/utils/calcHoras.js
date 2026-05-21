@@ -43,24 +43,33 @@ async function getConfigSupabase(userId) {
 }
 
 async function saveConfigSupabase(config, userId) {
-  if (!supabase || !userId) return
+  if (!supabase || !userId) {
+    throw new Error('Usuário não autenticado')
+  }
+
+  const payload = {
+    user_id:             userId,
+    jornada_minutos:     config.jornadaMinutos,
+    empresa_nome:        config.empresaNome,
+    intervalo_minutos:   config.intervaloMinutos,
+    dias_trabalho:       config.diasTrabalho,
+    hora_entrada_padrao: config.horaEntradaPadrao,
+    hora_saida_padrao:   config.horaSaidaPadrao,
+    jornada_padrao:      config.jornadaPadrao ?? [],
+    lembretes_ativo:     config.lembretes?.ativo ?? false,
+    lembrete_entrada:    config.lembretes?.entrada ?? '08:00',
+    lembrete_saida:      config.lembretes?.saida ?? '17:48',
+    updated_at:          new Date().toISOString(),
+  }
+
+  // Remove campos undefined para o Supabase usar os defaults do banco
+  Object.keys(payload).forEach(key => {
+    if (payload[key] === undefined) delete payload[key]
+  })
 
   const { error } = await supabase
     .from('config_usuarios')
-    .upsert({
-      user_id:             userId,
-      jornada_minutos:     config.jornadaMinutos,
-      empresa_nome:        config.empresaNome,
-      intervalo_minutos:   config.intervaloMinutos,
-      dias_trabalho:       config.diasTrabalho,
-      hora_entrada_padrao: config.horaEntradaPadrao,
-      hora_saida_padrao:   config.horaSaidaPadrao,
-      jornada_padrao:      config.jornadaPadrao ?? [],
-      lembretes_ativo:     config.lembretes?.ativo ?? false,
-      lembrete_entrada:    config.lembretes?.entrada ?? '08:00',
-      lembrete_saida:      config.lembretes?.saida ?? '17:48',
-      updated_at:          new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    .upsert(payload, { onConflict: 'user_id' })
 
   if (error) throw new Error(error.message)
 }
