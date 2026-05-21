@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerar Ícones PWA - PontoControlado</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a1a;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    h1 { margin-bottom: 0.5rem; color: #1A6B45; }
+    p { color: #888; margin-bottom: 2rem; }
+    .icons { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; }
+    .icon-box {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    canvas { border-radius: 8px; }
+    button {
+      background: #1A6B45;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #145536; }
+    .instructions {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #333;
+      border-radius: 8px;
+      max-width: 500px;
+    }
+    .instructions code {
+      background: #222;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <h1>PontoControlado</h1>
+  <p>Clique nos botões para baixar os ícones</p>
+  
+  <div class="icons">
+    <div class="icon-box">
+      <canvas id="icon-192" width="192" height="192"></canvas>
+      <button onclick="downloadPNG('icon-192', 'pwa-192.png')">Baixar 192x192</button>
+    </div>
+    <div class="icon-box">
+      <canvas id="icon-512" width="512" height="512"></canvas>
+      <button onclick="downloadPNG('icon-512', 'pwa-512.png')">Baixar 512x512</button>
+    </div>
+  </div>
+  
+  <div class="instructions">
+    <strong>Depois de baixar:</strong><br><br>
+    1. Salve os arquivos em <code>public/</code><br>
+    2. Execute <code>npm run build</code><br>
+    3. Reimplante o app
+  </div>
+
+  <script>
+    const GREEN = '#1A6B45'
+    
+    function drawIcon(size) {
+      const canvas = document.getElementById(`icon-${size}`)
+      const ctx = canvas.getContext('2d')
+      const r = size * 0.125
+      
+      // Background
+      ctx.fillStyle = GREEN
+      ctx.beginPath()
+      ctx.roundRect(0, 0, size, size, r)
+      ctx.fill()
+      
+      // Clock circle
+      ctx.strokeStyle = 'white'
+      ctx.lineWidth = size * 0.047
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size * 0.35, 0, Math.PI * 2)
+      ctx.stroke()
+      
+      // Hour hand
+      ctx.lineCap = 'round'
+      ctx.lineWidth = size * 0.047
+      ctx.beginPath()
+      ctx.moveTo(size / 2, size / 2)
+      ctx.lineTo(size / 2, size * 0.273)
+      ctx.stroke()
+      
+      // Minute hand
+      ctx.lineWidth = size * 0.039
+      ctx.beginPath()
+      ctx.moveTo(size / 2, size / 2)
+      ctx.lineTo(size * 0.664, size * 0.586)
+      ctx.stroke()
+      
+      // Center dot
+      ctx.fillStyle = 'white'
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size * 0.031, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // PC text
+      ctx.fillStyle = 'white'
+      ctx.font = `bold ${size * 0.094}px system-ui, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('PC', size / 2, size * 0.82)
+    }
+    
+    function downloadPNG(canvasId, filename) {
+      const canvas = document.getElementById(canvasId)
+      const link = document.createElement('a')
+      link.download = filename
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    }
+    
+    // Draw both icons
+    drawIcon(192)
+    drawIcon(512)
+  </script>
+</body>
+</html>

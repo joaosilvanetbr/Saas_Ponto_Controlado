@@ -1,0 +1,311 @@
+import { memo, useState } from 'react'
+import { diffMinutos } from '../../utils/calcHoras'
+import type { Marcacao, JornadaPadrao } from '../../types'
+
+const LABELS_PREVISTAS = [
+  'Previsão de entrada',
+  'Previsão de saída para o intervalo',
+  'Previsão de retorno do intervalo',
+  'Previsão de saída',
+]
+
+function formatarMinutos(minutos: number): string {
+  const abs = Math.abs(minutos)
+  const h = Math.floor(abs / 60)
+  const m = abs % 60
+  return m > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${h}h`
+}
+
+interface TimelineItem {
+  tipo: 'entrada' | 'saida'
+  hora: string
+  real?: boolean
+  index?: number
+  labelPrevista?: string
+}
+
+function mesclarTimeline(marcacoes: Marcacao[], jornadaPadrao: JornadaPadrao): TimelineItem[] {
+  const timeline: TimelineItem[] = []
+  const maxLen = Math.max(marcacoes.length, jornadaPadrao.length)
+
+  let offsetMinutos = 0
+  if (marcacoes.length > 0 && jornadaPadrao.length > 0) {
+    const horaRealPrimeira = marcacoes[0].hora
+    const horaPrevistaPrimeira = jornadaPadrao[0].hora
+    if (horaRealPrimeira && horaPrevistaPrimeira) {
+      offsetMinutos = diffMinutos(horaPrevistaPrimeira, horaRealPrimeira)
+    }
+  }
+
+  let offsetDinamico = offsetMinutos
+  if (marcacoes.length >= 2) {
+    const ultimoRealIdx = marcacoes.length - 1
+    if (jornadaPadrao[ultimoRealIdx]) {
+      const horaReal = marcacoes[ultimoRealIdx].hora
+      const horaPrevista = jornadaPadrao[ultimoRealIdx].hora
+      if (horaReal && horaPrevista) {
+        offsetDinamico = diffMinutos(horaPrevista, horaReal)
+      }
+    }
+  }
+
+  for (let i = 0; i < maxLen; i++) {
+    if (i < marcacoes.length) {
+      timeline.push({ ...marcacoes[i], real: true, index: i })
+    } else if (i < jornadaPadrao.length) {
+      const horaPrevista = jornadaPadrao[i].hora
+      let horaAjustada = horaPrevista
+
+      if (horaPrevista && offsetDinamico !== 0) {
+        const [h, m] = horaPrevista.split(':').map(Number)
+        const totalMin = h * 60 + m + offsetDinamico
+        const hAjust = Math.floor(((totalMin % 1440) + 1440) % 1440 / 60)
+        const mAjust = ((totalMin % 1440) + 1440) % 1440 % 60
+        horaAjustada = `${String(hAjust).padStart(2, '0')}:${String(mAjust).padStart(2, '0')}`
+      }
+
+      timeline.push({
+        ...jornadaPadrao[i],
+        hora: horaAjustada,
+        real: false,
+        index: i,
+        labelPrevista: LABELS_PREVISTAS[i] || `Previsão`,
+      })
+    }
+  }
+
+  return timeline
+}
+
+interface LinhaDoTempoProps {
+  marcacoes?: Marcacao[]
+  onEditar?: (_index: number, _novaHora: string) => void
+  onRemover?: (_index: number) => void
+  jornadaPadrao?: JornadaPadrao
+}
+
+function LinhaDoTempoComponent({ marcacoes = [], onEditar, onRemover, jornadaPadrao = [] }: LinhaDoTempoProps) {
+  const [editandoIdx, setEditandoIdx] = useState<number | null>(null)
+  const [editandoValor, setEditandoValor] = useState('')
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+
+  const timeline = mesclarTimeline(marcacoes, jornadaPadrao)
+
+  function iniciarEdicao(idx: number) {
+    setEditandoIdx(idx)
+    setEditandoValor(marcacoes[idx]?.hora || '')
+  }
+
+  function confirmarEdicao() {
+    if (editandoIdx !== null && editandoValor && onEditar) {
+      onEditar(editandoIdx, editandoValor)
+    }
+    setEditandoIdx(null)
+    setEditandoValor('')
+  }
+
+  function cancelarEdicao() {
+    setEditandoIdx(null)
+    setEditandoValor('')
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {timeline.map((item, idx) => {
+        const isEntrada = item.tipo === 'entrada'
+
+        return (
+          <div key={idx}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                minWidth: 36,
+                borderRadius: '50%',
+                border: `1.5px solid ${item.real ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                background: item.real ? 'var(--color-accent-tonal)' : 'transparent',
+                color: item.real ? 'var(--color-accent)' : 'var(--color-text-faint)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 2,
+              }}>
+                {isEntrada ? '→' : '←'}
+              </div>
+
+              <div style={{ flex: 1 }}>
+                {item.real ? (
+                  editandoIdx === idx ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <input
+                        type="time"
+                        value={editandoValor}
+                        onChange={(e) => setEditandoValor(e.target.value)}
+                        autoFocus
+                        style={{
+                          height: 40,
+                          background: 'var(--color-surface-2)',
+                          border: '1px solid var(--color-accent)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0 var(--space-3)',
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--color-text)',
+                          outline: 'none',
+                          fontFamily: 'var(--font-native)',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={confirmarEdicao}
+                        style={{
+                          background: 'var(--color-accent)',
+                          color: 'var(--color-accent-on)',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '4px 10px',
+                          fontSize: 'var(--text-xs)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-native)',
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelarEdicao}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-text-muted)',
+                          fontSize: 'var(--text-xs)',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-native)',
+                          padding: '4px 8px',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                      onTouchStart={() => setHoveredIdx(idx)}
+                      onTouchEnd={() => setTimeout(() => setHoveredIdx(null), 2000)}
+                      onMouseEnter={() => setHoveredIdx(idx)}
+                      onMouseLeave={() => setHoveredIdx(null)}
+                    >
+                      <span
+                        onClick={() => iniciarEdicao(idx)}
+                        style={{
+                          fontSize: 'var(--text-sm)',
+                          fontWeight: 700,
+                          color: 'var(--color-text)',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-native)',
+                        }}
+                      >
+                        {item.hora}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRemover?.(idx)}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-danger)',
+                          fontSize: 'var(--text-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 'var(--radius-sm)',
+                          fontFamily: 'var(--font-native)',
+                          opacity: hoveredIdx === idx ? 1 : 0,
+                          pointerEvents: hoveredIdx === idx ? 'auto' : 'none',
+                          transition: 'opacity 0.15s',
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div>
+                    <span style={{
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 400,
+                      color: 'var(--color-text-faint)',
+                    }}>
+                      {item.hora || '--:--'}
+                    </span>
+                    {item.labelPrevista && (
+                      <div style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--color-text-faint)',
+                        marginTop: 2,
+                      }}>
+                        {item.labelPrevista}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {idx < timeline.length - 1 && (
+              <div style={{
+                width: 2,
+                height: 32,
+                background: 'var(--color-border)',
+                marginLeft: 17,
+              }} />
+            )}
+
+            {idx < timeline.length - 1 && (() => {
+              const atual = timeline[idx]
+              const proxima = timeline[idx + 1]
+              if (!atual.hora || !proxima.hora) return null
+
+              const diff = diffMinutos(atual.hora, proxima.hora)
+              if (diff <= 0) return null
+
+              let label = ''
+              if (atual.tipo === 'entrada' && proxima.tipo === 'saida') {
+                label = `Turno de ${formatarMinutos(diff)}`
+              } else if (atual.tipo === 'saida' && proxima.tipo === 'entrada') {
+                label = `Intervalo de ${formatarMinutos(diff)}`
+              }
+              if (!label) return null
+
+              return (
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--color-text-muted)',
+                  paddingLeft: 52,
+                  paddingBottom: 4,
+                }}>
+                  {label}
+                </div>
+              )
+            })()}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Exportar com memo para evitar re-renders desnecessários
+const LinhaDoTempo = memo(LinhaDoTempoComponent, (prev, next) => {
+  return (
+    JSON.stringify(prev.marcacoes) === JSON.stringify(next.marcacoes) &&
+    JSON.stringify(prev.jornadaPadrao) === JSON.stringify(next.jornadaPadrao)
+  )
+})
+
+export default LinhaDoTempo
