@@ -16,10 +16,10 @@ interface PontoRow {
   marcacoes: Marcacao[]
 }
 
-function mapRow(row: PontoRow): Ponto {
+function mapRow(row: PontoRow, userId?: string): Ponto {
   return {
     id: row.id,
-    user_id: '',
+    user_id: userId || row.user_id || '',
     data: row.data,
     tipo: row.tipo as Ponto['tipo'],
     entrada1: row.entrada1 || null,
@@ -55,7 +55,7 @@ export function usePontos() {
           .eq('user_id', user.id)
           .gte('data', dataInicio)
           .order('data', { ascending: false })
-        if (!error && data) setPontos(data.map(mapRow))
+        if (!error && data) setPontos(data.map(row => mapRow(row, user.id)))
       } finally {
         setLoading(false)
       }
@@ -74,7 +74,7 @@ export function usePontos() {
 
     if (error || !data) return []
 
-    const novos = data.map(mapRow)
+    const novos = data.map(row => mapRow(row, user.id))
     setPontos(prev => {
       const existentes = new Set(prev.map(p => p.data))
       const adicionais = novos.filter(p => !existentes.has(p.data))
@@ -121,12 +121,12 @@ export function usePontos() {
 
     console.log('[usePontos] Payload:', JSON.stringify(payload, null, 2))
 
-    // Upsert
+    // Upsert - usar maybeSingle para evitar erro 406
     const { data, error, status } = await supabase
       .from('pontos')
       .upsert(payload, { onConflict: 'user_id,data' })
       .select()
-      .single()
+      .maybeSingle()
 
     console.log('[usePontos] Resultado upsert:', { status, error, data })
 
@@ -135,31 +135,25 @@ export function usePontos() {
       throw new Error(error.message || 'Erro ao salvar ponto')
     }
 
-    if (!data) {
-      console.warn('[usePontos] Upsert não retornou dados, buscando do banco...')
+    // Se upsert não retornou dados, buscar do banco
+    let pontoSalvo = data
+    if (!pontoSalvo) {
+      console.log('[usePontos] Upsert não retornou dados, buscando do banco...')
       const { data: existente, error: err2 } = await supabase
         .from('pontos')
         .select('*')
         .eq('user_id', user.id)
         .eq('data', ponto.data)
-        .maybeSingle()
+        .single()
       
-      console.log('[usePontos] Busca existente:', { error: err2, data: existente })
-      
-      if (existente) {
-        const mapped = mapRow(existente)
-        setPontos(prev => {
-          const lista = [...prev]
-          const idx = lista.findIndex((p) => p.data === mapped.data)
-          if (idx >= 0) lista[idx] = mapped
-          else lista.unshift(mapped)
-          return lista
-        })
+      if (err2) {
+        console.error('[usePontos] Erro ao buscar ponto salvo:', err2)
+        throw new Error(err2.message || 'Erro ao buscar ponto salvo')
       }
-      return
+      pontoSalvo = existente
     }
 
-    const mapped = mapRow(data)
+    const mapped = mapRow(pontoSalvo, user.id)
     console.log('[usePontos] Ponto mapeado:', mapped)
     
     setPontos(prev => {
