@@ -114,13 +114,38 @@ export function usePontos() {
       if (payload[key] === undefined || payload[key] === '') delete payload[key]
     })
 
+    // Upsert com maybeSingle para evitar erro 406
     const { data, error } = await supabase
       .from('pontos')
       .upsert(payload, { onConflict: 'user_id,data' })
       .select()
-      .single()
+      .maybeSingle()
 
-    if (error) throw new Error(error.message || 'Erro ao salvar ponto')
+    if (error) {
+      console.error('Erro ao salvar ponto:', error)
+      throw new Error(error.message || 'Erro ao salvar ponto')
+    }
+
+    // Se não retornou dados, buscar do banco
+    if (!data) {
+      const { data: existente } = await supabase
+        .from('pontos')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('data', ponto.data!)
+        .maybeSingle()
+      if (existente) {
+        const mapped = mapRow(existente)
+        setPontos(prev => {
+          const lista = [...prev]
+          const idx = lista.findIndex((p) => p.data === mapped.data)
+          if (idx >= 0) lista[idx] = mapped
+          else lista.unshift(mapped)
+          return lista
+        })
+      }
+      return
+    }
 
     const mapped = mapRow(data)
     setPontos(prev => {

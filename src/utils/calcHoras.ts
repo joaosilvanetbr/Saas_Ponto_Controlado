@@ -32,13 +32,13 @@ interface PontoLegacy {
 }
 
 async function getConfigSupabase(userId: string): Promise<ConfigUsuario | null> {
-  if (!supabase || !userId) return null
+  if (!userId) return null
 
   const { data, error } = await supabase
     .from('config_usuarios')
     .select('*')
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
 
   if (error || !data) return null
 
@@ -60,7 +60,7 @@ async function getConfigSupabase(userId: string): Promise<ConfigUsuario | null> 
 }
 
 async function saveConfigSupabase(config: ConfigUsuario, userId: string): Promise<void> {
-  if (!supabase || !userId) {
+  if (!userId) {
     throw new Error('Usuário não autenticado')
   }
 
