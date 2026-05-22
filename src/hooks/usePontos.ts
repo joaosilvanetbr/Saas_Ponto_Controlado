@@ -93,47 +93,59 @@ export function usePontos() {
   }, [pontos])
 
   const salvarPonto = useCallback(async (ponto: Partial<Ponto>): Promise<void> => {
-    if (!user) return
+    if (!user) {
+      console.error('[usePontos] salvarPonto: user é null')
+      throw new Error('Usuário não autenticado')
+    }
 
+    if (!ponto.data) {
+      console.error('[usePontos] salvarPonto: data é undefined')
+      throw new Error('Data do ponto é obrigatória')
+    }
+
+    console.log('[usePontos] Salvando ponto:', { userId: user.id, data: ponto.data, marcacoes: ponto.marcacoes })
+
+    // Construir payload limpo
     const payload: Record<string, unknown> = {
       user_id: user.id,
       data: ponto.data,
       tipo: ponto.tipo || 'registro',
-      entrada1: ponto.entrada1 || null,
-      saida1: ponto.saida1 || null,
-      entrada2: ponto.entrada2 || null,
-      saida2: ponto.saida2 || null,
-      obs: ponto.obs || null,
-      horas_extras_min: ponto.horasExtrasMin || 0,
-      marcacoes: ponto.marcacoes || [],
-      updated_at: new Date().toISOString(),
+      entrada1: ponto.entrada1 ?? null,
+      saida1: ponto.saida1 ?? null,
+      entrada2: ponto.entrada2 ?? null,
+      saida2: ponto.saida2 ?? null,
+      obs: ponto.obs ?? null,
+      horas_extras_min: ponto.horasExtrasMin ?? 0,
+      marcacoes: ponto.marcacoes ?? [],
     }
 
-    // Remove campos undefined/null para o Supabase usar defaults do banco
-    Object.keys(payload).forEach(key => {
-      if (payload[key] === undefined || payload[key] === '') delete payload[key]
-    })
+    console.log('[usePontos] Payload:', JSON.stringify(payload, null, 2))
 
-    // Upsert com maybeSingle para evitar erro 406
-    const { data, error } = await supabase
+    // Upsert
+    const { data, error, status } = await supabase
       .from('pontos')
       .upsert(payload, { onConflict: 'user_id,data' })
       .select()
-      .maybeSingle()
+      .single()
+
+    console.log('[usePontos] Resultado upsert:', { status, error, data })
 
     if (error) {
-      console.error('Erro ao salvar ponto:', error)
+      console.error('[usePontos] Erro no upsert:', error)
       throw new Error(error.message || 'Erro ao salvar ponto')
     }
 
-    // Se não retornou dados, buscar do banco
     if (!data) {
-      const { data: existente } = await supabase
+      console.warn('[usePontos] Upsert não retornou dados, buscando do banco...')
+      const { data: existente, error: err2 } = await supabase
         .from('pontos')
         .select('*')
         .eq('user_id', user.id)
-        .eq('data', ponto.data!)
+        .eq('data', ponto.data)
         .maybeSingle()
+      
+      console.log('[usePontos] Busca existente:', { error: err2, data: existente })
+      
       if (existente) {
         const mapped = mapRow(existente)
         setPontos(prev => {
@@ -148,11 +160,14 @@ export function usePontos() {
     }
 
     const mapped = mapRow(data)
+    console.log('[usePontos] Ponto mapeado:', mapped)
+    
     setPontos(prev => {
       const lista = [...prev]
       const idx = lista.findIndex((p) => p.data === mapped.data)
       if (idx >= 0) lista[idx] = mapped
       else lista.unshift(mapped)
+      console.log('[usePontos] Estado atualizado:', lista.length, 'pontos')
       return lista
     })
   }, [user])

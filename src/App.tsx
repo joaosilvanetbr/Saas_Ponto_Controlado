@@ -7,6 +7,20 @@ import type { ConfigUsuario } from './types'
 import ProtectedRoute from './components/Layout/ProtectedRoute'
 import BottomNav from './components/Layout/BottomNav'
 
+// Debug: Log when App loads
+console.log('[App] Componente App carregado')
+
+// Global error handler
+if (typeof window !== 'undefined') {
+  window.onerror = (msg, _url, _line, _col, error) => {
+    console.error('[GLOBAL ERROR]', { msg, error })
+    return false
+  }
+  window.onunhandledrejection = (event) => {
+    console.error('[UNHANDLED REJECTION]', event.reason)
+  }
+}
+
 // Lazy loading para code-splitting
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const HomePage = lazy(() => import('./pages/HomePage'))
@@ -58,6 +72,8 @@ function NotificacoesInit() {
 }
 
 export default function App() {
+  console.log('[App] Renderizando App')
+  
   return (
     <BrowserRouter>
       <AuthProvider>
